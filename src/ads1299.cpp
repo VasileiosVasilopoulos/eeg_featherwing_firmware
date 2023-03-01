@@ -3,12 +3,15 @@
 
 
 
-void ADS1299::initialize(int _CS, int _FREQ, boolean _isDaisy){
-	isDaisy = _isDaisy;
-	int FREQ = _FREQ;
+void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){
+	verbose = _verbose;
+    isDaisy = _isDaisy;
+	// int FREQ = _FREQ;
     CS = _CS;
 	
-	SPI.begin(SCLK, DOUT, DIN, CS);
+	// vspi->begin(SCLK, DOUT, DIN, CS);
+    vspi = new SPIClass(VSPI);
+    vspi->begin(SCLK, DOUT, DIN, CS);
 
 	delay(50);				// recommended power up sequence requiers Tpor (~32mS)	
 	pinMode(ADS_RST,OUTPUT);
@@ -38,11 +41,11 @@ void ADS1299::initialize(int _CS, int _FREQ, boolean _isDaisy){
     // // set as master and enable SPI
     // SPCR |= _BV(MSTR);
     // SPCR |= _BV(SPE);
-    // set bit order
+    // // set bit order
     // SPCR &= ~(_BV(DORD)); ////SPI data format is MSB (pg. 25)
 	// set data mode
     // SPCR = (SPCR & ~SPI_MODE_MASK) | SPI_DATA_MODE; //clock polarity = 0; clock phase = 1 (pg. 8)
-    // set clock divider
+    // // set clock divider
 	// switch (FREQ){
 	// 	case 8:
 	// 		DIVIDER = SPI_CLOCK_DIV_2;
@@ -76,62 +79,62 @@ void ADS1299::initialize(int _CS, int _FREQ, boolean _isDaisy){
 
 //System Commands
 void ADS1299::WAKEUP() {
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW); 
-    SPI.transfer(_WAKEUP);
+    vspi->transfer(_WAKEUP);
     digitalWrite(CS, HIGH); 
     delayMicroseconds(3);  		//must wait 4 tCLK cycles before sending another command (Datasheet, pg. 35)
-    SPI.endTransaction();
+    vspi->endTransaction();
 }
 
 void ADS1299::STANDBY() {		// only allowed to send WAKEUP after sending STANDBY
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
-    SPI.transfer(_STANDBY);
+    vspi->transfer(_STANDBY);
     digitalWrite(CS, HIGH);
-    SPI.endTransaction();
+    vspi->endTransaction();
 }
 
 void ADS1299::RESET() {			// reset all the registers to default settings
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
-    SPI.transfer(_RESET);
+    vspi->transfer(_RESET);
     delayMicroseconds(12);   	//must wait 18 tCLK cycles to execute this command (Datasheet, pg. 35)
     digitalWrite(CS, HIGH);
-    SPI.endTransaction();
+    vspi->endTransaction();
 }
 
 void ADS1299::START() {			//start data conversion 
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
-    SPI.transfer(_START);
+    vspi->transfer(_START);
     digitalWrite(CS, HIGH);
-    SPI.endTransaction();
+    vspi->endTransaction();
 }
 
 void ADS1299::STOP() {			//stop data conversion
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
-    SPI.transfer(_STOP);
+    vspi->transfer(_STOP);
     digitalWrite(CS, HIGH);
-    SPI.endTransaction();
+    vspi->endTransaction();
 }
 
 void ADS1299::RDATAC() {
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
-    SPI.transfer(_RDATAC);
+    vspi->transfer(_RDATAC);
     digitalWrite(CS, HIGH);
 	delayMicroseconds(3);   
-    SPI.endTransaction();
+    vspi->endTransaction();
 }
 void ADS1299::SDATAC() {
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
-    SPI.transfer(_SDATAC);
+    vspi->transfer(_SDATAC);
     digitalWrite(CS, HIGH);
 	delayMicroseconds(3);   //must wait 4 tCLK cycles after executing this command (Datasheet, pg. 37)
-    SPI.endTransaction();
+    vspi->endTransaction();
 }
 
 // Register Read/Write Commands
@@ -145,14 +148,14 @@ byte ADS1299::getDeviceID() {			// simple hello world com check
 }
 
 byte ADS1299::RREG(byte _address) {		//  reads ONE register at _address
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     byte opcode1 = _address + 0x20; 	//  RREG expects 001rrrrr where rrrrr = _address
     digitalWrite(CS, LOW); 				//  open SPI
-    SPI.transfer(opcode1); 					//  opcode1
-    SPI.transfer(0x00); 					//  opcode2
-    regData[_address] = SPI.transfer(0x00);//  update mirror location with returned byte
+    vspi->transfer(opcode1); 					//  opcode1
+    vspi->transfer(0x00); 					//  opcode2
+    regData[_address] = vspi->transfer(0x00);//  update mirror location with returned byte
     digitalWrite(CS, HIGH); 			//  close SPI	
-    SPI.endTransaction();
+    vspi->endTransaction();
 	if (verbose){						//  verbose output
 		printRegisterName(_address);
 		printHex(_address);
@@ -174,16 +177,16 @@ void ADS1299::RREGS(byte _address, byte _numRegistersMinusOne) {
 //	for(byte i = 0; i < 0x17; i++){
 //		regData[i] = 0;					//  reset the regData array
 //	}
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
     byte opcode1 = _address + 0x20; 	//  RREG expects 001rrrrr where rrrrr = _address
     digitalWrite(CS, LOW); 				//  open SPI
-    SPI.transfer(opcode1); 					//  opcode1
-    SPI.transfer(_numRegistersMinusOne);	//  opcode2
+    vspi->transfer(opcode1); 					//  opcode1
+    vspi->transfer(_numRegistersMinusOne);	//  opcode2
     for(int i = 0; i <= _numRegistersMinusOne; i++){
-        regData[_address + i] = SPI.transfer(0x00); 	//  add register byte to mirror array
+        regData[_address + i] = vspi->transfer(0x00); 	//  add register byte to mirror array
 		}
     digitalWrite(CS, HIGH); 			//  close SPI
-    SPI.endTransaction();
+    vspi->endTransaction();
 	if(verbose){						//  verbose output
 		for(int i = 0; i<= _numRegistersMinusOne; i++){
 			printRegisterName(_address + i);
@@ -201,14 +204,14 @@ void ADS1299::RREGS(byte _address, byte _numRegistersMinusOne) {
 }
 
 void ADS1299::WREG(byte _address, byte _value) {	//  Write ONE register at _address
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
     byte opcode1 = _address + 0x40; 	//  WREG expects 010rrrrr where rrrrr = _address
     digitalWrite(CS, LOW); 				//  open SPI
-    SPI.transfer(opcode1);					//  Send WREG command & address
-    SPI.transfer(0x00);						//	Send number of registers to read -1
-    SPI.transfer(_value);					//  Write the value to the register
+    vspi->transfer(opcode1);					//  Send WREG command & address
+    vspi->transfer(0x00);						//	Send number of registers to read -1
+    vspi->transfer(_value);					//  Write the value to the register
     digitalWrite(CS, HIGH); 			//  close SPI
-    SPI.endTransaction();
+    vspi->endTransaction();
 	regData[_address] = _value;			//  update the mirror array
 	if(verbose){						//  verbose output
 		Serial.print(F("Register "));
@@ -218,16 +221,16 @@ void ADS1299::WREG(byte _address, byte _value) {	//  Write ONE register at _addr
 }
 
 void ADS1299::WREGS(byte _address, byte _numRegistersMinusOne) {
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
     byte opcode1 = _address + 0x40;		//  WREG expects 010rrrrr where rrrrr = _address
     digitalWrite(CS, LOW); 				//  open SPI
-    SPI.transfer(opcode1);					//  Send WREG command & address
-    SPI.transfer(_numRegistersMinusOne);	//	Send number of registers to read -1	
+    vspi->transfer(opcode1);					//  Send WREG command & address
+    vspi->transfer(_numRegistersMinusOne);	//	Send number of registers to read -1	
 	for (int i=_address; i <=(_address + _numRegistersMinusOne); i++){
-		SPI.transfer(regData[i]);			//  Write to the registers
+		vspi->transfer(regData[i]);			//  Write to the registers
 	}	
 	digitalWrite(CS,HIGH);				//  close SPI
-    SPI.endTransaction();
+    vspi->endTransaction();
 	if(verbose){
 		Serial.print(F("Registers "));
 		printHex(_address); Serial.print(F(" to "));
@@ -239,18 +242,18 @@ void ADS1299::WREGS(byte _address, byte _numRegistersMinusOne) {
 void ADS1299::updateChannelData(){
 	byte inByte;
 	int nchan=8;  //assume 8 channel.  If needed, it automatically changes to 16 automatically in a later block.
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
 	digitalWrite(CS, LOW);				//  open SPI
 	
 	// READ CHANNEL DATA FROM FIRST ADS IN DAISY LINE
 	for(int i=0; i<3; i++){			//  read 3 byte status register from ADS 1 (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
-		inByte = SPI.transfer(0x00);
+		inByte = vspi->transfer(0x00);
 		stat_1 = (stat_1<<8) | inByte;				
 	}
 	
 	for(int i = 0; i<8; i++){
 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
-			inByte = SPI.transfer(0x00);
+			inByte = vspi->transfer(0x00);
 			channelData[i] = (channelData[i]<<8) | inByte;
 		}
 	}
@@ -259,20 +262,20 @@ void ADS1299::updateChannelData(){
 		nchan = 16;
 		// READ CHANNEL DATA FROM SECOND ADS IN DAISY LINE
 		for(int i=0; i<3; i++){			//  read 3 byte status register from ADS 2 (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
-			inByte = SPI.transfer(0x00);
+			inByte = vspi->transfer(0x00);
 			stat_2 = (stat_1<<8) | inByte;				
 		}
 		
 		for(int i = 8; i<16; i++){
 			for(int j=0; j<3; j++){		//  read 24 bits of channel data from 2nd ADS in 8 3 byte chunks
-				inByte = SPI.transfer(0x00);
+				inByte = vspi->transfer(0x00);
 				channelData[i] = (channelData[i]<<8) | inByte;
 			}
 		}
 	}
 	
 	digitalWrite(CS, HIGH);				//  close SPI
-    SPI.endTransaction();
+    vspi->endTransaction();
 	
 	//reformat the numbers
 	for(int i=0; i<nchan; i++){			// convert 3 byte 2's compliment to 4 byte 2's compliment	
@@ -290,24 +293,24 @@ void ADS1299::RDATA() {				//  use in Stop Read Continuous mode when DRDY goes l
 	stat_1 = 0;							//  clear the status registers
 	stat_2 = 0;	
 	int nchan = 8;	//assume 8 channel.  If needed, it automatically changes to 16 automatically in a later block.
-    SPI.beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     
     
     //TODO begin transaction does not end somewhere
 	
 
     digitalWrite(CS, LOW);				//  open SPI
-	SPI.transfer(_RDATA);
+	vspi->transfer(_RDATA);
 	
 	// READ CHANNEL DATA FROM FIRST ADS IN DAISY LINE
 	for(int i=0; i<3; i++){			//  read 3 byte status register (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
-		inByte = SPI.transfer(0x00);
+		inByte = vspi->transfer(0x00);
 		stat_1 = (stat_1<<8) | inByte;				
 	}
 	
 	for(int i = 0; i<8; i++){
 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
-			inByte = SPI.transfer(0x00);
+			inByte = vspi->transfer(0x00);
 			channelData[i] = (channelData[i]<<8) | inByte;
 		}
 	}
@@ -317,13 +320,13 @@ void ADS1299::RDATA() {				//  use in Stop Read Continuous mode when DRDY goes l
 		
 		// READ CHANNEL DATA FROM SECOND ADS IN DAISY LINE
 		for(int i=0; i<3; i++){			//  read 3 byte status register (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
-			inByte = SPI.transfer(0x00);
+			inByte = vspi->transfer(0x00);
 			stat_2 = (stat_1<<8) | inByte;				
 		}
 		
 		for(int i = 8; i<16; i++){
 			for(int j=0; j<3; j++){		//  read 24 bits of channel data from 2nd ADS in 8 3 byte chunks
-				inByte = SPI.transfer(0x00);
+				inByte = vspi->transfer(0x00);
 				channelData[i] = (channelData[i]<<8) | inByte;
 			}
 		}
@@ -402,7 +405,7 @@ void ADS1299::printRegisterName(byte _address) {
     else if(_address == LOFF_STATN){
         Serial.print(F("LOFF_STATN, "));
     }
-    else if(_address == GPIO){
+    else if(_address == _GPIO){
         Serial.print(F("GPIO, "));
     }
     else if(_address == MISC1){

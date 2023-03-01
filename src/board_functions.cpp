@@ -1,6 +1,7 @@
 #include <board_functions.h>
 #include <board_definitions.h>
 #include <Arduino.h>
+#include <ads1299.h>
 
 // BUTTON INTERRUPTS
 
@@ -52,6 +53,30 @@ void GEENIE::set_buttons(){
   attachInterrupt(BTN_4, btn_4_isr, FALLING);
 }
 
-void GEENIE::initialize(){
+void GEENIE::initialize_ads(){
     // Serial.begin(SERIAL_BAUDRATE);
+    Ads1299.initialize(BOARD_ADS, false, true);
+    delay(100);
+    verbose = true;
+    reset_ads();
+}
+
+void GEENIE::reset_ads(){
+    Ads1299.RESET();             // send RESET command to default all registers
+    Ads1299.SDATAC();            // exit Read Data Continuous mode to communicate with ADS
+
+    delay(100);
+
+    // turn off all channels
+    // for (int chan=1; chan <= OPENBCI_NCHAN_PER_BOARD; chan++) {
+    // deactivateChannel(chan);  //turn off the channel
+    // changeChannelLeadOffDetection(chan,OFF,BOTHCHAN); //turn off any impedance monitoring
+    // }
+
+    // setSRB1(use_SRB1());  //set whether SRB1 is active or not
+    // setAutoBiasGeneration(true); //configure ADS1299 so that bias is generated based on channel state
+}
+
+byte GEENIE::read_ads(){
+    return Ads1299.getDeviceID();
 }

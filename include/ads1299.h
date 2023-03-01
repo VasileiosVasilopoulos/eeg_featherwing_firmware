@@ -9,7 +9,7 @@
 class ADS1299 {
 public:
     
-    void initialize(int _CS, int _FREQ, boolean _isDaisy);
+    void initialize(int _CS, boolean _isDaisy, boolean _verbose);
     
     //ADS1299 SPI Command Definitions (Datasheet, p35)
     //System Commands
@@ -47,6 +47,8 @@ public:
     boolean isDaisy;		// does this have a daisy chain board?
     
     static const int spiClk = 1000000; // 1 MHz
+
+    SPIClass * vspi = NULL;
 };
 
 
