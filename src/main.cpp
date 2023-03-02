@@ -10,7 +10,7 @@ void setup() {
   Serial.println("Ready");
   Geenie.set_buttons();
   Geenie.initialize_ads();
-  // byte ads_addr = Geenie.read_ads();
+  byte ads_addr = Geenie.read_ads();
 }
 
 void loop() {

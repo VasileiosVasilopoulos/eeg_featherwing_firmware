@@ -11,7 +11,6 @@ void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){
 	
 	// vspi->begin(SCLK, DOUT, DIN, CS);
     vspi = new SPIClass(VSPI);
-    vspi->begin(SCLK, DOUT, DIN, CS);
 
 	delay(50);				// recommended power up sequence requiers Tpor (~32mS)	
 	pinMode(ADS_RST,OUTPUT);
@@ -41,11 +40,18 @@ void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){
     // // set as master and enable SPI
     // SPCR |= _BV(MSTR);
     // SPCR |= _BV(SPE);
-    // // set bit order
-    // SPCR &= ~(_BV(DORD)); ////SPI data format is MSB (pg. 25)
-	// set data mode
+
+    // set bit order
+    // SPCR &= ~(_BV(DORD)); ////SPI data format is MSB (pg. 25) 
+    vspi->setBitOrder(SPI_BYTEORDER);
+	
+    // set data mode
     // SPCR = (SPCR & ~SPI_MODE_MASK) | SPI_DATA_MODE; //clock polarity = 0; clock phase = 1 (pg. 8)
-    // // set clock divider
+    vspi->setDataMode(SPI_MODE);
+    vspi->setFrequency(SPI_SPEED);
+    
+    vspi->begin(SCLK, DOUT, DIN, CS);
+    // set clock divider
 	// switch (FREQ){
 	// 	case 8:
 	// 		DIVIDER = SPI_CLOCK_DIV_2;
@@ -73,13 +79,14 @@ void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){
     pinMode(CS, OUTPUT);
 	
 	digitalWrite(CS,HIGH); 	
-	digitalWrite(ADS_RST,HIGH);
+	// digitalWrite(ADS_RST,HIGH);
 }
 
 
 //System Commands
 void ADS1299::WAKEUP() {
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings());
     digitalWrite(CS, LOW); 
     vspi->transfer(_WAKEUP);
     digitalWrite(CS, HIGH); 
@@ -88,7 +95,8 @@ void ADS1299::WAKEUP() {
 }
 
 void ADS1299::STANDBY() {		// only allowed to send WAKEUP after sending STANDBY
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings());
     digitalWrite(CS, LOW);
     vspi->transfer(_STANDBY);
     digitalWrite(CS, HIGH);
@@ -96,7 +104,8 @@ void ADS1299::STANDBY() {		// only allowed to send WAKEUP after sending STANDBY
 }
 
 void ADS1299::RESET() {			// reset all the registers to default settings
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings());
     digitalWrite(CS, LOW);
     vspi->transfer(_RESET);
     delayMicroseconds(12);   	//must wait 18 tCLK cycles to execute this command (Datasheet, pg. 35)
@@ -105,7 +114,8 @@ void ADS1299::RESET() {			// reset all the registers to default settings
 }
 
 void ADS1299::START() {			//start data conversion 
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings());
     digitalWrite(CS, LOW);
     vspi->transfer(_START);
     digitalWrite(CS, HIGH);
@@ -113,7 +123,8 @@ void ADS1299::START() {			//start data conversion
 }
 
 void ADS1299::STOP() {			//stop data conversion
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings());
     digitalWrite(CS, LOW);
     vspi->transfer(_STOP);
     digitalWrite(CS, HIGH);
@@ -121,7 +132,8 @@ void ADS1299::STOP() {			//stop data conversion
 }
 
 void ADS1299::RDATAC() {
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings());
     digitalWrite(CS, LOW);
     vspi->transfer(_RDATAC);
     digitalWrite(CS, HIGH);
@@ -129,7 +141,8 @@ void ADS1299::RDATAC() {
     vspi->endTransaction();
 }
 void ADS1299::SDATAC() {
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings());
     digitalWrite(CS, LOW);
     vspi->transfer(_SDATAC);
     digitalWrite(CS, HIGH);
@@ -148,7 +161,8 @@ byte ADS1299::getDeviceID() {			// simple hello world com check
 }
 
 byte ADS1299::RREG(byte _address) {		//  reads ONE register at _address
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings());
     byte opcode1 = _address + 0x20; 	//  RREG expects 001rrrrr where rrrrr = _address
     digitalWrite(CS, LOW); 				//  open SPI
     vspi->transfer(opcode1); 					//  opcode1
@@ -177,7 +191,8 @@ void ADS1299::RREGS(byte _address, byte _numRegistersMinusOne) {
 //	for(byte i = 0; i < 0x17; i++){
 //		regData[i] = 0;					//  reset the regData array
 //	}
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
+    vspi->beginTransaction(SPISettings());
     byte opcode1 = _address + 0x20; 	//  RREG expects 001rrrrr where rrrrr = _address
     digitalWrite(CS, LOW); 				//  open SPI
     vspi->transfer(opcode1); 					//  opcode1
@@ -204,7 +219,8 @@ void ADS1299::RREGS(byte _address, byte _numRegistersMinusOne) {
 }
 
 void ADS1299::WREG(byte _address, byte _value) {	//  Write ONE register at _address
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
+    vspi->beginTransaction(SPISettings());
     byte opcode1 = _address + 0x40; 	//  WREG expects 010rrrrr where rrrrr = _address
     digitalWrite(CS, LOW); 				//  open SPI
     vspi->transfer(opcode1);					//  Send WREG command & address
@@ -221,7 +237,8 @@ void ADS1299::WREG(byte _address, byte _value) {	//  Write ONE register at _addr
 }
 
 void ADS1299::WREGS(byte _address, byte _numRegistersMinusOne) {
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
+    vspi->beginTransaction(SPISettings());
     byte opcode1 = _address + 0x40;		//  WREG expects 010rrrrr where rrrrr = _address
     digitalWrite(CS, LOW); 				//  open SPI
     vspi->transfer(opcode1);					//  Send WREG command & address
@@ -242,7 +259,8 @@ void ADS1299::WREGS(byte _address, byte _numRegistersMinusOne) {
 void ADS1299::updateChannelData(){
 	byte inByte;
 	int nchan=8;  //assume 8 channel.  If needed, it automatically changes to 16 automatically in a later block.
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings());
 	digitalWrite(CS, LOW);				//  open SPI
 	
 	// READ CHANNEL DATA FROM FIRST ADS IN DAISY LINE
@@ -293,8 +311,8 @@ void ADS1299::RDATA() {				//  use in Stop Read Continuous mode when DRDY goes l
 	stat_1 = 0;							//  clear the status registers
 	stat_2 = 0;	
 	int nchan = 8;	//assume 8 channel.  If needed, it automatically changes to 16 automatically in a later block.
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
-    
+    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+    vspi->beginTransaction(SPISettings());
     
     //TODO begin transaction does not end somewhere
 	
