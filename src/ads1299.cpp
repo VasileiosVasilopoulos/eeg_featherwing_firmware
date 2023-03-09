@@ -1,11 +1,19 @@
 #include <ads1299.h>
 #include <board_definitions.h>
 
+// using namespace std;
+
+#include <FunctionalInterrupt.h>
 
 
-void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){
+
+void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){ 
 	verbose = _verbose;
     isDaisy = _isDaisy;
+
+    n_chan_all_boards = CHANNELS_PER_BOARD;
+    if (isDaisy) n_chan_all_boards = 2*CHANNELS_PER_BOARD;
+
 	// int FREQ = _FREQ;
     CS = _CS;
     pinMode(SD_CS, OUTPUT);
@@ -21,6 +29,7 @@ void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){
 	delayMicroseconds(4);	// toggle reset pin
 	pinMode(ADS_RST,HIGH);
 	delayMicroseconds(20);	// recommended to wait 18 Tclk before using device (~8uS);
+
 	
 
     // **** ----- SPI Setup ----- **** //
@@ -40,34 +49,6 @@ void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){
     digitalWrite(DIN, LOW);
     // digitalWrite(SS, HIGH);
     
-    // // set as master and enable SPI
-    // SPCR |= _BV(MSTR);
-    // SPCR |= _BV(SPE);
-    // // set bit order
-    // SPCR &= ~(_BV(DORD)); ////SPI data format is MSB (pg. 25)
-	// set data mode
-    // SPCR = (SPCR & ~SPI_MODE_MASK) | SPI_DATA_MODE; //clock polarity = 0; clock phase = 1 (pg. 8)
-    // // set clock divider
-	// switch (FREQ){
-	// 	case 8:
-	// 		DIVIDER = SPI_CLOCK_DIV_2;
-	// 		break;
-	// 	case 4:
-	// 		DIVIDER = SPI_CLOCK_DIV_4;
-	// 		break;
-	// 	case 1:
-	// 		DIVIDER = SPI_CLOCK_DIV_16;
-	// 		break;
-	// 	default:
-	// 		break;
-	// }
-    // SPCR = (SPCR & ~SPI_CLOCK_MASK) | (DIVIDER);  // set SCK frequency  
-    // SPSR = (SPSR & ~SPI_2XCLOCK_MASK) | (DIVIDER); // by dividing 16MHz system clock
-    
-    
-    
-    
-    
     // **** ----- End of SPI Setup ----- **** //
     
     // initalize the  data ready chip select and reset pins:
@@ -77,9 +58,17 @@ void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){
 	digitalWrite(CS,HIGH); 	
 
     vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
+
+    pinMode(ADS_DRDY, INPUT);
+    attachInterrupt(ADS_DRDY, std::bind(&ADS1299::ads_drdy,this), FALLING);
 	// digitalWrite(ADS_RST,HIGH);
 }
 
+void IRAM_ATTR ADS1299::ads_drdy(){
+    Serial.println("DRDY Low");
+    updateChannelData();
+    printChannelDataAsText(8, 0);
+};
 
 //System Commands
 void ADS1299::WAKEUP() {
@@ -428,3 +417,28 @@ void ADS1299::printHex(byte _data){
     if(_data < 0x10) Serial.print("0");
     Serial.print(_data, HEX);
 }
+
+//print as text each channel's data
+//   print channels 1-N (where N is 1-8...anything else will return with no action)
+//   sampleNumber is a number that, if greater than zero, will be printed at the start of the line
+void ADS1299::printChannelDataAsText(int N, long int sampleNumber)
+{
+	//check the inputs
+	if ((N < 1) || (N > n_chan_all_boards)) return;
+	
+	//print the sample number, if not disabled
+	if (sampleNumber > 0) {
+		Serial.print(sampleNumber);
+		Serial.print(", ");
+	}
+
+	//print each channel
+	for (int chan = 0; chan < N; chan++ )
+	{
+		Serial.print(channelData[chan]);
+		Serial.print(", ");
+	}
+	
+	//print end of line
+	Serial.println();
+};

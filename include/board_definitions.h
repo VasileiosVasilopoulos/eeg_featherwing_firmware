@@ -25,6 +25,9 @@
 #define I2C_SCL 22
 #define I2C_SDA 23
 
+//BOARD OTHER
+#define CHANNELS_PER_BOARD (8)  // number of EEG channels
+
 // NEED CABLE
 #define ADS_RST 16
 
@@ -73,5 +76,42 @@
 #define MISC2 0x16
 #define CONFIG4 0x17
 
+//gainCode choices
+#define ADS_GAIN01 (0b00000000)
+#define ADS_GAIN02 (0b00010000)
+#define ADS_GAIN04 (0b00100000)
+#define ADS_GAIN06 (0b00110000)
+#define ADS_GAIN08 (0b01000000)
+#define ADS_GAIN12 (0b01010000)
+#define ADS_GAIN24 (0b01100000)
+
+//inputCode choices
+#define ADSINPUT_NORMAL (0b00000000)
+#define ADSINPUT_SHORTED (0b00000001)
+#define ADSINPUT_TESTSIG (0b00000101)
+
+//test signal choices...ADS1299 datasheet page 41
+#define ADSTESTSIG_AMP_1X (0b00000000)
+#define ADSTESTSIG_AMP_2X (0b00000100)
+#define ADSTESTSIG_PULSE_SLOW (0b00000000)
+#define ADSTESTSIG_PULSE_FAST (0b00000001)
+#define ADSTESTSIG_DCSIG (0b00000011)
+#define ADSTESTSIG_NOCHANGE (0b11111111)
+
+//Lead-off signal choices
+#define LOFF_MAG_6NA (0b00000000)
+#define LOFF_MAG_24NA (0b00000100)
+#define LOFF_MAG_6UA (0b00001000)
+#define LOFF_MAG_24UA (0b00001100)
+#define LOFF_FREQ_DC (0b00000000)
+#define LOFF_FREQ_7p8HZ (0b00000001)
+#define LOFF_FREQ_31p2HZ (0b00000010)
+#define LOFF_FREQ_FS_4 (0b00000011)
+#define PCHAN (1)
+#define NCHAN (2)
+#define BOTHCHAN (3)
+
+#define OFF (0)
+#define ON (1)
 
 #endif

@@ -2,6 +2,7 @@
 #include <board_definitions.h>
 #include <board_functions.h>
 
+
 GEENIE Geenie;
 
 void setup() {
@@ -9,13 +10,42 @@ void setup() {
   Serial.begin(SERIAL_BAUDRATE);
   Serial.println("Ready");
   Geenie.set_buttons();
-  Geenie.initialize_ads();
+  Geenie.initialize();
   byte ads_addr = Geenie.read_ads();
+
+  delay(4000);
+
+  Geenie.start();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  // Geenie.printChannelDataAsText(8, 0);
+  // delay(1000);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
  * Connect the SD card to the following pins:

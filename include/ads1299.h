@@ -26,6 +26,7 @@ public:
     
     //Register Read/Write Commands
     byte getDeviceID();
+    void ads_drdy();
     byte RREG(byte _address);
     void RREGS(byte _address, byte _numRegistersMinusOne);     
     void printRegisterName(byte _address);
@@ -34,6 +35,10 @@ public:
     void printHex(byte _data);
     void updateChannelData();
     
+
+    void printChannelDataAsText(int N, long int sampleNumber);
+    
+
     //SPI Transfer function
     // byte transfer(byte _data);
 
@@ -46,6 +51,8 @@ public:
     boolean verbose;		// turn on/off Serial feedback
     boolean isDaisy;		// does this have a daisy chain board?
     
+    int n_chan_all_boards;
+
     static const int spiClk = 1000000; // 1 MHz
 
     SPIClass * vspi = NULL;
