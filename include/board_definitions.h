@@ -31,9 +31,11 @@
 #define SERIAL_BAUDRATE 115200
 
 //SPI Settings
-#define SPI_SPEED 14000000
+// #define SPI_SPEED 14000000
+#define SPI_SPEED 1000000
+
 #define SPI_BYTEORDER MSBFIRST
-#define SPI_MODE SPI_MODE0
+#define SPI_MODE SPI_MODE1
 
 //SPI Command Definition Byte Assignments (Datasheet, p35)
 #define _WAKEUP 0x02 // Wake-up from standby mode
