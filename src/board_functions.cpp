@@ -53,6 +53,17 @@ void GEENIE::set_buttons(){
   attachInterrupt(BTN_4, btn_4_isr, FALLING);
 }
 
+bool GEENIE::begin(uint8_t ssPin, SPIClass &spi, uint32_t frequency)
+{
+    spi.begin();
+    Ads1299.initialize(BOARD_ADS, false, true);
+    // if(_pdrv == 0xFF) {
+    //     return false;
+    // }
+
+    return true;
+}
+
 void GEENIE::initialize_ads(){
     // Serial.begin(SERIAL_BAUDRATE);
     Ads1299.initialize(BOARD_ADS, false, true);

@@ -7,9 +7,15 @@ GEENIE Geenie;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(SERIAL_BAUDRATE);
+  while(!Serial){}
+
   Serial.println("Ready");
   Geenie.set_buttons();
-  Geenie.initialize_ads();
+    if(!Geenie.initialize_ads()){
+      Serial.println("Card Mount Failed");
+      return;
+  }
+  
   byte ads_addr = Geenie.read_ads();
 }
 
