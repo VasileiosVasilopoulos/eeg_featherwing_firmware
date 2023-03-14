@@ -1,37 +1,29 @@
-#include <ads1299.h>
-#include <board_definitions.h>
+//
+//  ADS1299DIAISY.cpp   ARDUINO LIBRARY FOR COMMUNICATING WITH TWO
+//  DAISY-CHAINED ADS1299 BOARDS
+//  
+//  Created by Conor Russomanno, Luke Travis, and Joel Murphy. Summer, 2013
+//
+//  Extended by Chip Audette through April 2014
+//
 
-// using namespace std;
 
-#include <FunctionalInterrupt.h>
+#include "pins_arduino.h"
+#include "ADS1299.h"
 
-
-
-void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){ 
-	verbose = _verbose;
-    isDaisy = _isDaisy;
-
-    n_chan_all_boards = CHANNELS_PER_BOARD;
-    if (isDaisy) n_chan_all_boards = 2*CHANNELS_PER_BOARD;
-
-    // WREG(CONFIG1,0b11101100); delay(1);
-
-	// int FREQ = _FREQ;
-    CS = _CS;
-    pinMode(SD_CS, OUTPUT);
+void ADS1299::initialize(int _DRDY, int _RST, int _CS, int _FREQ, boolean _isDaisy){
+	isDaisy = _isDaisy;
+	DRDY = _DRDY;
+	CS = _CS;
+	int FREQ = _FREQ;
+	int RST = _RST;
 	
-	digitalWrite(SD_CS,HIGH); 	
-	// vspi->begin(SCLK, DOUT, DIN, CS);
-    vspi = new SPIClass(VSPI);
-    vspi->begin(SCLK, DOUT, DIN, CS);
-
 	delay(50);				// recommended power up sequence requiers Tpor (~32mS)	
-	pinMode(ADS_RST,OUTPUT);
-	pinMode(ADS_RST,LOW);
+	pinMode(RST,OUTPUT);
+	pinMode(RST,LOW);
 	delayMicroseconds(4);	// toggle reset pin
-	pinMode(ADS_RST,HIGH);
+	pinMode(RST,HIGH);
 	delayMicroseconds(20);	// recommended to wait 18 Tclk before using device (~8uS);
-
 	
 
     // **** ----- SPI Setup ----- **** //
@@ -42,98 +34,99 @@ void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){
     // a general purpose output port (it doesn't influence
     // SPI operations).
     
-    pinMode(SCLK, OUTPUT);
-    pinMode(DIN, OUTPUT);
-    // pinMode(SS, OUTPUT);
+    pinMode(SCK, OUTPUT);
+    pinMode(MOSI, OUTPUT);
+    pinMode(SS, OUTPUT);
 	
     
-    digitalWrite(SCLK, LOW);
-    digitalWrite(DIN, LOW);
-    // digitalWrite(SS, HIGH);
+    digitalWrite(SCK, LOW);
+    digitalWrite(MOSI, LOW);
+    digitalWrite(SS, HIGH);
+    
+    // set as master and enable SPI
+    SPCR |= _BV(MSTR);
+    SPCR |= _BV(SPE);
+    //set bit order
+    SPCR &= ~(_BV(DORD)); ////SPI data format is MSB (pg. 25)
+	// set data mode
+    SPCR = (SPCR & ~SPI_MODE_MASK) | SPI_DATA_MODE; //clock polarity = 0; clock phase = 1 (pg. 8)
+    // set clock divider
+	switch (FREQ){
+		case 8:
+			DIVIDER = SPI_CLOCK_DIV_2;
+			break;
+		case 4:
+			DIVIDER = SPI_CLOCK_DIV_4;
+			break;
+		case 1:
+			DIVIDER = SPI_CLOCK_DIV_16;
+			break;
+		default:
+			break;
+	}
+    SPCR = (SPCR & ~SPI_CLOCK_MASK) | (DIVIDER);  // set SCK frequency  
+    SPSR = (SPSR & ~SPI_2XCLOCK_MASK) | (DIVIDER); // by dividing 16MHz system clock
+    
+    
+    
+    
     
     // **** ----- End of SPI Setup ----- **** //
     
     // initalize the  data ready chip select and reset pins:
-    // pinMode(ADS_DRDY, INPUT);
+    pinMode(DRDY, INPUT);
     pinMode(CS, OUTPUT);
 	
 	digitalWrite(CS,HIGH); 	
-
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
-
-    pinMode(ADS_DRDY, INPUT_PULLUP);
-    attachInterrupt(ADS_DRDY, std::bind(&ADS1299::ads_drdy,this), FALLING);
-	// digitalWrite(ADS_RST,HIGH);
-
-    Serial.println("Interrupr set");
+	digitalWrite(RST,HIGH);
 }
-
-void IRAM_ATTR ADS1299::ads_drdy(){
-    Serial.println("DRDY Low");
-    RDATA();
-    // updateChannelData();
-    printChannelDataAsText(8, 0);
-};
 
 //System Commands
 void ADS1299::WAKEUP() {
-    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW); 
-    vspi->transfer(_WAKEUP);
+    transfer(_WAKEUP);
     digitalWrite(CS, HIGH); 
     delayMicroseconds(3);  		//must wait 4 tCLK cycles before sending another command (Datasheet, pg. 35)
-    // vspi->endTransaction();
 }
 
 void ADS1299::STANDBY() {		// only allowed to send WAKEUP after sending STANDBY
-    vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
-    vspi->transfer(_STANDBY);
+    transfer(_STANDBY);
     digitalWrite(CS, HIGH);
-    vspi->endTransaction();
 }
 
 void ADS1299::RESET() {			// reset all the registers to default settings
-    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
-    vspi->transfer(_RESET);
+    transfer(_RESET);
     delayMicroseconds(12);   	//must wait 18 tCLK cycles to execute this command (Datasheet, pg. 35)
     digitalWrite(CS, HIGH);
-    // vspi->endTransaction();
 }
 
 void ADS1299::START() {			//start data conversion 
-    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
-    vspi->transfer(_START);
+    transfer(_START);
     digitalWrite(CS, HIGH);
-    // vspi->endTransaction();
 }
 
 void ADS1299::STOP() {			//stop data conversion
-    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
-    vspi->transfer(_STOP);
+    transfer(_STOP);
     digitalWrite(CS, HIGH);
-    // vspi->endTransaction();
 }
 
 void ADS1299::RDATAC() {
-    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
-    vspi->transfer(_RDATAC);
+    transfer(_RDATAC);
     digitalWrite(CS, HIGH);
 	delayMicroseconds(3);   
-    // vspi->endTransaction();
 }
 void ADS1299::SDATAC() {
-    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
-    vspi->transfer(_SDATAC);
+    transfer(_SDATAC);
     digitalWrite(CS, HIGH);
 	delayMicroseconds(3);   //must wait 4 tCLK cycles after executing this command (Datasheet, pg. 37)
-    // vspi->endTransaction();
 }
+
 
 // Register Read/Write Commands
 byte ADS1299::getDeviceID() {			// simple hello world com check
@@ -146,14 +139,12 @@ byte ADS1299::getDeviceID() {			// simple hello world com check
 }
 
 byte ADS1299::RREG(byte _address) {		//  reads ONE register at _address
-    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     byte opcode1 = _address + 0x20; 	//  RREG expects 001rrrrr where rrrrr = _address
     digitalWrite(CS, LOW); 				//  open SPI
-    vspi->transfer(opcode1); 					//  opcode1
-    vspi->transfer(0x00); 					//  opcode2
-    regData[_address] = vspi->transfer(0x00);//  update mirror location with returned byte
+    transfer(opcode1); 					//  opcode1
+    transfer(0x00); 					//  opcode2
+    regData[_address] = transfer(0x00);//  update mirror location with returned byte
     digitalWrite(CS, HIGH); 			//  close SPI	
-    // vspi->endTransaction();
 	if (verbose){						//  verbose output
 		printRegisterName(_address);
 		printHex(_address);
@@ -175,16 +166,14 @@ void ADS1299::RREGS(byte _address, byte _numRegistersMinusOne) {
 //	for(byte i = 0; i < 0x17; i++){
 //		regData[i] = 0;					//  reset the regData array
 //	}
-    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
     byte opcode1 = _address + 0x20; 	//  RREG expects 001rrrrr where rrrrr = _address
     digitalWrite(CS, LOW); 				//  open SPI
-    vspi->transfer(opcode1); 					//  opcode1
-    vspi->transfer(_numRegistersMinusOne);	//  opcode2
+    transfer(opcode1); 					//  opcode1
+    transfer(_numRegistersMinusOne);	//  opcode2
     for(int i = 0; i <= _numRegistersMinusOne; i++){
-        regData[_address + i] = vspi->transfer(0x00); 	//  add register byte to mirror array
+        regData[_address + i] = transfer(0x00); 	//  add register byte to mirror array
 		}
     digitalWrite(CS, HIGH); 			//  close SPI
-    // vspi->endTransaction();
 	if(verbose){						//  verbose output
 		for(int i = 0; i<= _numRegistersMinusOne; i++){
 			printRegisterName(_address + i);
@@ -199,17 +188,16 @@ void ADS1299::RREGS(byte _address, byte _numRegistersMinusOne) {
 			Serial.println();
 		}
     }
+    
 }
 
 void ADS1299::WREG(byte _address, byte _value) {	//  Write ONE register at _address
-    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
     byte opcode1 = _address + 0x40; 	//  WREG expects 010rrrrr where rrrrr = _address
     digitalWrite(CS, LOW); 				//  open SPI
-    vspi->transfer(opcode1);					//  Send WREG command & address
-    vspi->transfer(0x00);						//	Send number of registers to read -1
-    vspi->transfer(_value);					//  Write the value to the register
+    transfer(opcode1);					//  Send WREG command & address
+    transfer(0x00);						//	Send number of registers to read -1
+    transfer(_value);					//  Write the value to the register
     digitalWrite(CS, HIGH); 			//  close SPI
-    // vspi->endTransaction();
 	regData[_address] = _value;			//  update the mirror array
 	if(verbose){						//  verbose output
 		Serial.print(F("Register "));
@@ -219,16 +207,14 @@ void ADS1299::WREG(byte _address, byte _value) {	//  Write ONE register at _addr
 }
 
 void ADS1299::WREGS(byte _address, byte _numRegistersMinusOne) {
-    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));  
     byte opcode1 = _address + 0x40;		//  WREG expects 010rrrrr where rrrrr = _address
     digitalWrite(CS, LOW); 				//  open SPI
-    vspi->transfer(opcode1);					//  Send WREG command & address
-    vspi->transfer(_numRegistersMinusOne);	//	Send number of registers to read -1	
+    transfer(opcode1);					//  Send WREG command & address
+    transfer(_numRegistersMinusOne);	//	Send number of registers to read -1	
 	for (int i=_address; i <=(_address + _numRegistersMinusOne); i++){
-		vspi->transfer(regData[i]);			//  Write to the registers
+		transfer(regData[i]);			//  Write to the registers
 	}	
 	digitalWrite(CS,HIGH);				//  close SPI
-    // vspi->endTransaction();
 	if(verbose){
 		Serial.print(F("Registers "));
 		printHex(_address); Serial.print(F(" to "));
@@ -237,21 +223,21 @@ void ADS1299::WREGS(byte _address, byte _numRegistersMinusOne) {
 	}
 }
 
+
 void ADS1299::updateChannelData(){
 	byte inByte;
 	int nchan=8;  //assume 8 channel.  If needed, it automatically changes to 16 automatically in a later block.
-    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
 	digitalWrite(CS, LOW);				//  open SPI
 	
 	// READ CHANNEL DATA FROM FIRST ADS IN DAISY LINE
 	for(int i=0; i<3; i++){			//  read 3 byte status register from ADS 1 (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
-		inByte = vspi->transfer(0x00);
+		inByte = transfer(0x00);
 		stat_1 = (stat_1<<8) | inByte;				
 	}
 	
 	for(int i = 0; i<8; i++){
 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
-			inByte = vspi->transfer(0x00);
+			inByte = transfer(0x00);
 			channelData[i] = (channelData[i]<<8) | inByte;
 		}
 	}
@@ -260,20 +246,19 @@ void ADS1299::updateChannelData(){
 		nchan = 16;
 		// READ CHANNEL DATA FROM SECOND ADS IN DAISY LINE
 		for(int i=0; i<3; i++){			//  read 3 byte status register from ADS 2 (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
-			inByte = vspi->transfer(0x00);
+			inByte = transfer(0x00);
 			stat_2 = (stat_1<<8) | inByte;				
 		}
 		
 		for(int i = 8; i<16; i++){
 			for(int j=0; j<3; j++){		//  read 24 bits of channel data from 2nd ADS in 8 3 byte chunks
-				inByte = vspi->transfer(0x00);
+				inByte = transfer(0x00);
 				channelData[i] = (channelData[i]<<8) | inByte;
 			}
 		}
 	}
 	
 	digitalWrite(CS, HIGH);				//  close SPI
-    // vspi->endTransaction();
 	
 	//reformat the numbers
 	for(int i=0; i<nchan; i++){			// convert 3 byte 2's compliment to 4 byte 2's compliment	
@@ -285,30 +270,25 @@ void ADS1299::updateChannelData(){
 	}
 }
 
+	
 //read data
 void ADS1299::RDATA() {				//  use in Stop Read Continuous mode when DRDY goes low
 	byte inByte;
 	stat_1 = 0;							//  clear the status registers
 	stat_2 = 0;	
 	int nchan = 8;	//assume 8 channel.  If needed, it automatically changes to 16 automatically in a later block.
-    // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
-    
-    
-    //TODO begin transaction does not end somewhere
-	
-
-    digitalWrite(CS, LOW);				//  open SPI
-	vspi->transfer(_RDATA);
+	digitalWrite(CS, LOW);				//  open SPI
+	transfer(_RDATA);
 	
 	// READ CHANNEL DATA FROM FIRST ADS IN DAISY LINE
 	for(int i=0; i<3; i++){			//  read 3 byte status register (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
-		inByte = vspi->transfer(0x00);
+		inByte = transfer(0x00);
 		stat_1 = (stat_1<<8) | inByte;				
 	}
 	
 	for(int i = 0; i<8; i++){
 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
-			inByte = vspi->transfer(0x00);
+			inByte = transfer(0x00);
 			channelData[i] = (channelData[i]<<8) | inByte;
 		}
 	}
@@ -318,12 +298,13 @@ void ADS1299::RDATA() {				//  use in Stop Read Continuous mode when DRDY goes l
 		
 		// READ CHANNEL DATA FROM SECOND ADS IN DAISY LINE
 		for(int i=0; i<3; i++){			//  read 3 byte status register (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
-			inByte = vspi->transfer(0x00);
+			inByte = transfer(0x00);
 			stat_2 = (stat_1<<8) | inByte;				
 		}
+		
 		for(int i = 8; i<16; i++){
 			for(int j=0; j<3; j++){		//  read 24 bits of channel data from 2nd ADS in 8 3 byte chunks
-				inByte = vspi->transfer(0x00);
+				inByte = transfer(0x00);
 				channelData[i] = (channelData[i]<<8) | inByte;
 			}
 		}
@@ -339,6 +320,8 @@ void ADS1299::RDATA() {				//  use in Stop Read Continuous mode when DRDY goes l
 	
     
 }
+
+
 
 // String-Byte converters for RREG and WREG
 void ADS1299::printRegisterName(byte _address) {
@@ -402,7 +385,7 @@ void ADS1299::printRegisterName(byte _address) {
     else if(_address == LOFF_STATN){
         Serial.print(F("LOFF_STATN, "));
     }
-    else if(_address == _GPIO){
+    else if(_address == GPIO){
         Serial.print(F("GPIO, "));
     }
     else if(_address == MISC1){
@@ -416,6 +399,16 @@ void ADS1299::printRegisterName(byte _address) {
     }
 }
 
+//SPI communication methods
+byte ADS1299::transfer(byte _data) {
+	cli();
+    SPDR = _data;
+    while (!(SPSR & _BV(SPIF)))
+        ;
+	sei();
+    return SPDR;
+}
+
 // Used for printing HEX in verbose feedback mode
 void ADS1299::printHex(byte _data){
 	Serial.print("0x");
@@ -423,27 +416,9 @@ void ADS1299::printHex(byte _data){
     Serial.print(_data, HEX);
 }
 
-//print as text each channel's data
-//   print channels 1-N (where N is 1-8...anything else will return with no action)
-//   sampleNumber is a number that, if greater than zero, will be printed at the start of the line
-void ADS1299::printChannelDataAsText(int N, long int sampleNumber)
-{
-	//check the inputs
-	if ((N < 1) || (N > n_chan_all_boards)) return;
-	
-	//print the sample number, if not disabled
-	if (sampleNumber > 0) {
-		Serial.print(sampleNumber);
-		Serial.print(", ");
-	}
+//-------------------------------------------------------------------//
+//-------------------------------------------------------------------//
+//-------------------------------------------------------------------//
 
-	//print each channel
-	for (int chan = 0; chan < N; chan++ )
-	{
-		Serial.print(channelData[chan]);
-		Serial.print(", ");
-	}
-	
-	//print end of line
-	Serial.println();
-};
+
+

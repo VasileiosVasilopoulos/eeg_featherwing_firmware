@@ -1,30 +1,102 @@
-#include <Arduino.h>
-#include <board_definitions.h>
-#include <board_functions.h>
+// #include <Arduino.h>
+// #include <board_definitions.h>
+// #include <board_functions.h>
 
 
-GEENIE Geenie;
+// GEENIE Geenie;
+
+// void setup() {
+//   // put your setup code here, to run once:
+//   Serial.begin(SERIAL_BAUDRATE);
+//   Serial.println("Ready");
+//   Geenie.set_buttons();
+//   Geenie.initialize();
+//   byte ads_addr = Geenie.read_ads();
+
+//   delay(4000);
+
+//   Geenie.start();
+// }
+
+// void loop() {
+//   // put your main code here, to run repeatedly:
+//   // Geenie.printChannelDataAsText(8, 0);
+//   // delay(1000);
+// }
+
+
+#include <ads1299.h>
+
+ADS1299 ADS;                           // create an instance of ADS1299
+
+unsigned long thisTime;                
+unsigned long thatTime;
+unsigned long elapsedTime;
+int resetPin = 9;                      // pin 9 used to start conversion in Read Data Continuous mode
+int sampleCounter = 0;                 // used to time the tesing loop
+boolean testing = true;               // this flag is set in serialEvent on reciept of prompt
+
+
+void serialEvent(){            // send an 'x' on the serial line to trigger ADStest()
+  while(Serial.available()){      
+    char inChar = (char)Serial.read();
+    if (inChar  == 'x'){   
+      testing = true;
+    }
+  }
+}
+
+void ADStest(int numSamples){
+  while(sampleCounter < numSamples){  // take only as many samples as you need
+    while(digitalRead(ADS_DRDY)){            // watch the DRDY pin
+      }
+    ADS.RDATA();          // update the channelData array 
+    ADS.printChannelDataAsText(8, 0);
+    sampleCounter++;                  // increment sample counter for next time
+  }
+    return;
+}
+
 
 void setup() {
-  // put your setup code here, to run once:
-  Serial.begin(SERIAL_BAUDRATE);
-  Serial.println("Ready");
-  Geenie.set_buttons();
-  Geenie.initialize();
-  byte ads_addr = Geenie.read_ads();
+  // don't put anything before the initialization routine for recommended POR  
+  ADS.initialize(BOARD_ADS, false, true); // (DRDY pin, RST pin, CS pin, SCK frequency in MHz);
 
-  delay(4000);
+  Serial.begin(115200);
+  Serial.println("ADS1299-Arduino UNO Example 2"); 
+  delay(2000);             
 
-  Geenie.start();
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
-  // Geenie.printChannelDataAsText(8, 0);
-  // delay(1000);
-}
+  ADS.verbose = true;      // when verbose is true, there will be Serial feedback 
+  ADS.RESET();             // send RESET command to default all registers
+  ADS.SDATAC();            // exit Read Data Continuous mode to communicate with ADS
+  ADS.RREGS(0x00,0x17);     // read all registers starting at ID and ending at CONFIG4
+  ADS.WREG(CONFIG3,0xE0);  // enable internal reference buffer, for fun
+  ADS.RREG(CONFIG3);       // verify write
 
 
+  // ADS.RDATAC();            // enter Read Data Continuous mode
+  
+  Serial.println("Press 'x' to begin test");    // ask for prompt
+} // end of setup
+
+void loop(){
+  
+  if (testing){
+    Serial.println("entering test loop");
+    ADS.START();                    // start sampling at the default rate
+    thatTime = millis();            // timestamp
+    ADStest(50);                   // go to testing routine and specify the number of samples to take
+    thisTime = millis();            // timestamp
+    ADS.STOP();                     // stop the sampling
+    elapsedTime = thisTime - thatTime;
+    Serial.print("Elapsed Time ");Serial.println(elapsedTime);  // benchmark
+      Serial.print("Samples ");Serial.println(sampleCounter);   // 
+    testing = false;                // reset testing flag
+    sampleCounter = 0;              // reset counter
+    Serial.println("Press 'x' to begin test");  // ask for prompt
+  }// end of testing
+  
+} // end of loop
 
 
 

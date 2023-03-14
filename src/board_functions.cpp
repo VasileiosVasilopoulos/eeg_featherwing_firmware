@@ -292,7 +292,7 @@ byte GEENIE::read_ads(){
 //Start continuous data acquisition
 void GEENIE::start()
 {
-    ADS1299::RDATAC(); 
+    // ADS1299::RDATAC(); 
     delay(1);           // enter Read Data Continuous mode
     ADS1299::START();    //start the data acquisition
 }
