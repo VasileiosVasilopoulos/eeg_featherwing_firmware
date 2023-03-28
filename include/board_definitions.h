@@ -26,7 +26,7 @@
 #define I2C_SDA 23
 
 //BOARD OTHER
-#define CHANNELS_PER_BOARD (8)  // number of EEG channels
+#define CHANNELS_PER_BOARD (4)  // number of EEG channels
 
 // NEED CABLE
 #define ADS_RST 16

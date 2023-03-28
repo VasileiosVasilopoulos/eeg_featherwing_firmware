@@ -72,6 +72,10 @@ void setup() {
   ADS.RREGS(0x00,0x17);     // read all registers starting at ID and ending at CONFIG4
   ADS.WREG(CONFIG3,0xE0);  // enable internal reference buffer, for fun
   ADS.RREG(CONFIG3);       // verify write
+  ADS.WREG(CH1SET,0b01100000);  // enable internal reference buffer, for fun
+  ADS.RREG(CH1SET);       // verify write
+  ADS.WREG(CONFIG4,0b00001000);  // enable internal reference buffer, for fun
+  ADS.RREG(CONFIG4);       // verify write
 
 
   // ADS.RDATAC();            // enter Read Data Continuous mode
