@@ -6,7 +6,6 @@
 #include <FunctionalInterrupt.h>
 
 
-
 void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){ 
 	verbose = _verbose;
     isDaisy = _isDaisy;
@@ -69,10 +68,10 @@ void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){
 }
 
 void IRAM_ATTR ADS1299::ads_drdy(){
-    Serial.println("DRDY Low");
-    RDATA();
-    // updateChannelData();
-    printChannelDataAsText(8, 0);
+    // Serial.println("DRDY Low");
+    // RDATA();
+    updateChannelData();
+    // printChannelDataAsText(8, 0);
 };
 
 //System Commands
@@ -97,7 +96,7 @@ void ADS1299::RESET() {			// reset all the registers to default settings
     // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     digitalWrite(CS, LOW);
     vspi->transfer(_RESET);
-    delayMicroseconds(12);   	//must wait 18 tCLK cycles to execute this command (Datasheet, pg. 35)
+    delayMicroseconds(100);   	//must wait 18 tCLK cycles to execute this command (Datasheet, pg. 35)
     digitalWrite(CS, HIGH);
     // vspi->endTransaction();
 }
@@ -131,7 +130,7 @@ void ADS1299::SDATAC() {
     digitalWrite(CS, LOW);
     vspi->transfer(_SDATAC);
     digitalWrite(CS, HIGH);
-	delayMicroseconds(3);   //must wait 4 tCLK cycles after executing this command (Datasheet, pg. 37)
+	delayMicroseconds(50);   //must wait 4 tCLK cycles after executing this command (Datasheet, pg. 37)
     // vspi->endTransaction();
 }
 
@@ -246,31 +245,43 @@ void ADS1299::updateChannelData(){
 	// READ CHANNEL DATA FROM FIRST ADS IN DAISY LINE
 	for(int i=0; i<3; i++){			//  read 3 byte status register from ADS 1 (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
 		inByte = vspi->transfer(0x00);
-		stat_1 = (stat_1<<8) | inByte;				
+		stat1_1 = (stat1_1<<8) | inByte;				
 	}
 	
-	for(int i = 0; i<8; i++){
+	for(int i = 0; i<4; i++){
+		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
+			inByte = vspi->transfer(0x00);
+			channelData[i] = (channelData[i]<<8) | inByte;
+		}
+	}
+
+    for(int i=0; i<3; i++){			//  read 3 byte status register from ADS 1 (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
+		inByte = vspi->transfer(0x00);
+		stat1_2 = (stat1_2<<8) | inByte;				
+	}
+	
+	for(int i = 4; i<8; i++){
 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
 			inByte = vspi->transfer(0x00);
 			channelData[i] = (channelData[i]<<8) | inByte;
 		}
 	}
 	
-	if (isDaisy) {
-		nchan = 16;
-		// READ CHANNEL DATA FROM SECOND ADS IN DAISY LINE
-		for(int i=0; i<3; i++){			//  read 3 byte status register from ADS 2 (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
-			inByte = vspi->transfer(0x00);
-			stat_2 = (stat_1<<8) | inByte;				
-		}
+	// if (isDaisy) {
+	// 	nchan = 16;
+	// 	// READ CHANNEL DATA FROM SECOND ADS IN DAISY LINE
+	// 	for(int i=0; i<3; i++){			//  read 3 byte status register from ADS 2 (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
+	// 		inByte = vspi->transfer(0x00);
+	// 		stat_2_1 = (stat_2_1<<8) | inByte;				
+	// 	}
 		
-		for(int i = 8; i<16; i++){
-			for(int j=0; j<3; j++){		//  read 24 bits of channel data from 2nd ADS in 8 3 byte chunks
-				inByte = vspi->transfer(0x00);
-				channelData[i] = (channelData[i]<<8) | inByte;
-			}
-		}
-	}
+	// 	for(int i = 8; i<16; i++){
+	// 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 2nd ADS in 8 3 byte chunks
+	// 			inByte = vspi->transfer(0x00);
+	// 			channelData[i] = (channelData[i]<<8) | inByte;
+	// 		}
+	// 	}
+	// }
 	
 	digitalWrite(CS, HIGH);				//  close SPI
     // vspi->endTransaction();
@@ -288,8 +299,10 @@ void ADS1299::updateChannelData(){
 //read data
 void ADS1299::RDATA() {				//  use in Stop Read Continuous mode when DRDY goes low
 	byte inByte;
-	stat_1 = 0;							//  clear the status registers
-	stat_2 = 0;	
+	stat1_1 = 0;
+    stat1_2 = 0;							//  clear the status registers
+	stat2_1 = 0;
+    stat2_2 = 0;	
 	int nchan = 8;	//assume 8 channel.  If needed, it automatically changes to 16 automatically in a later block.
     // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
     
@@ -303,31 +316,43 @@ void ADS1299::RDATA() {				//  use in Stop Read Continuous mode when DRDY goes l
 	// READ CHANNEL DATA FROM FIRST ADS IN DAISY LINE
 	for(int i=0; i<3; i++){			//  read 3 byte status register (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
 		inByte = vspi->transfer(0x00);
-		stat_1 = (stat_1<<8) | inByte;				
+		stat1_1 = (stat1_1<<8) | inByte;				
 	}
 	
-	for(int i = 0; i<8; i++){
+	for(int i = 0; i<4; i++){
+		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
+			inByte = vspi->transfer(0x00);
+			channelData[i] = (channelData[i]<<8) | inByte;
+		}
+	}
+
+    for(int i=0; i<3; i++){			//  read 3 byte status register (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
+		inByte = vspi->transfer(0x00);
+		stat1_2 = (stat1_2<<8) | inByte;				
+	}
+	
+	for(int i = 4; i<8; i++){
 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
 			inByte = vspi->transfer(0x00);
 			channelData[i] = (channelData[i]<<8) | inByte;
 		}
 	}
 	
-	if (isDaisy) {
-		nchan = 16;
+	// if (isDaisy) {
+	// 	nchan = 16;
 		
-		// READ CHANNEL DATA FROM SECOND ADS IN DAISY LINE
-		for(int i=0; i<3; i++){			//  read 3 byte status register (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
-			inByte = vspi->transfer(0x00);
-			stat_2 = (stat_1<<8) | inByte;				
-		}
-		for(int i = 8; i<16; i++){
-			for(int j=0; j<3; j++){		//  read 24 bits of channel data from 2nd ADS in 8 3 byte chunks
-				inByte = vspi->transfer(0x00);
-				channelData[i] = (channelData[i]<<8) | inByte;
-			}
-		}
-	}
+	// 	// READ CHANNEL DATA FROM SECOND ADS IN DAISY LINE
+	// 	for(int i=0; i<3; i++){			//  read 3 byte status register (1100+LOFF_STATP+LOFF_STATN+GPIO[7:4])
+	// 		inByte = vspi->transfer(0x00);
+	// 		stat2_1 = (stat2_1<<8) | inByte;				
+	// 	}
+	// 	for(int i = 8; i<16; i++){
+	// 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 2nd ADS in 8 3 byte chunks
+	// 			inByte = vspi->transfer(0x00);
+	// 			channelData[i] = (channelData[i]<<8) | inByte;
+	// 		}
+	// 	}
+	// }
 	
 	for(int i=0; i<nchan; i++){			// convert 3 byte 2's compliment to 4 byte 2's compliment	
 		if(bitRead(channelData[i],23) == 1){	
@@ -429,7 +454,7 @@ void ADS1299::printHex(byte _data){
 void ADS1299::printChannelDataAsText(int N, long int sampleNumber)
 {
 	//check the inputs
-	if ((N < 1) || (N > n_chan_all_boards)) return;
+	// if ((N < 1) || (N > n_chan_all_boards)) return;
 	
 	//print the sample number, if not disabled
 	if (sampleNumber > 0) {

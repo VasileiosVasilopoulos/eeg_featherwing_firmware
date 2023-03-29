@@ -2,28 +2,31 @@
 #include <board_definitions.h>
 #include <Arduino.h>
 #include <ads1299.h>
+#include <FunctionalInterrupt.h>
 
 // BUTTON INTERRUPTS
 
 volatile int button_pressed = 0;
 
-void IRAM_ATTR btn_1_isr(){
+void IRAM_ATTR GEENIE::btn_1_isr(){
     int now = millis();
     if (now - button_pressed > 400){
         button_pressed = now;
         Serial.println("Button 1 pressed");
+        start();
     }
 };
 
-void IRAM_ATTR btn_2_isr(){
+void IRAM_ATTR GEENIE::btn_2_isr(){
     int now = millis();
     if (now - button_pressed > 400){
         button_pressed = now;
         Serial.println("Button 2 pressed");
+        stop();
     }
 };
 
-void IRAM_ATTR btn_3_isr(){
+void IRAM_ATTR GEENIE::btn_3_isr(){
     int now = millis();
     if (now - button_pressed > 400){
         button_pressed = now;
@@ -31,7 +34,7 @@ void IRAM_ATTR btn_3_isr(){
     }
 };
 
-void IRAM_ATTR btn_4_isr(){
+void IRAM_ATTR GEENIE::btn_4_isr(){
     int now = millis();
     if (now - button_pressed > 400){
         button_pressed = now;
@@ -43,26 +46,34 @@ void IRAM_ATTR btn_4_isr(){
 
 void GEENIE::set_buttons(){
   pinMode(BTN_1, INPUT_PULLUP);
-  attachInterrupt(BTN_1, btn_1_isr, FALLING);
+//   attachInterrupt(BTN_1, btn_1_isr, FALLING);
+  attachInterrupt(BTN_1, std::bind(&GEENIE::btn_1_isr,this), FALLING);
 
   pinMode(BTN_2, INPUT_PULLUP);
-  attachInterrupt(BTN_2, btn_2_isr, FALLING);
+//   attachInterrupt(BTN_2, btn_2_isr, FALLING);
+  attachInterrupt(BTN_2, std::bind(&GEENIE::btn_2_isr,this), FALLING);
 
   pinMode(BTN_3, INPUT_PULLUP);
-  attachInterrupt(BTN_3, btn_3_isr, FALLING);
+//   attachInterrupt(BTN_3, btn_3_isr, FALLING);
+  attachInterrupt(BTN_3, std::bind(&GEENIE::btn_3_isr,this), FALLING);
 
   pinMode(BTN_4, INPUT_PULLUP);
-  attachInterrupt(BTN_4, btn_4_isr, FALLING);
+//   attachInterrupt(BTN_4, btn_4_isr, FALLING);
+  attachInterrupt(BTN_4, std::bind(&GEENIE::btn_4_isr,this), FALLING);
 }
 
 void GEENIE::initialize(boolean isDaisy){
     // Serial.begin(SERIAL_BAUDRATE);
+    // ads = ADS1299();
+    // ADS1299::initialize();
     ADS1299::initialize(BOARD_ADS, isDaisy, true);
 
     delay(100);
     verbose = true;
 
     setSRB();
+
+    delay(4000);
 
     reset();
 
@@ -72,17 +83,32 @@ void GEENIE::initialize(boolean isDaisy){
     //set default state for internal test signal
     //ADS1299::WREG(CONFIG2,0b11010000);delay(1);   //set internal test signal, default amplitude, default speed, datasheet PDF Page 41
     //ADS1299::WREG(CONFIG2,0b11010001);delay(1);   //set internal test signal, default amplitude, 2x speed, datasheet PDF Page 41
-    configureInternalTestSignal(ADSTESTSIG_AMP_1X,ADSTESTSIG_PULSE_FAST); //set internal test signal, default amplitude, 2x speed, datasheet PDF Page 41
+    // configureInternalTestSignal(ADSTESTSIG_AMP_1X,ADSTESTSIG_PULSE_FAST); //set internal test signal, default amplitude, 2x speed, datasheet PDF Page 41
 
     //set default state for lead off detection
-    configureLeadOffDetection(LOFF_MAG_6NA,LOFF_FREQ_31p2HZ);
+    // configureLeadOffDetection(LOFF_MAG_6NA,LOFF_FREQ_31p2HZ);
 }
 
 void GEENIE::reset(){
     ADS1299::RESET();             // send RESET command to default all registers
     ADS1299::SDATAC();            // exit Read Data Continuous mode to communicate with ADS
 
-    delay(100);
+    // delay(1000);
+
+    // ADS1299::WREG(CONFIG3, 0xE0);delay(100);
+    // ADS1299::WREG(CONFIG1, 0x96);delay(100);
+    // ADS1299::WREG(CONFIG2, 0xC0);delay(100);
+    // ADS1299::WREG(CH1SET, 0x01);delay(100);
+    // ADS1299::WREG(CH2SET, 0x01);delay(100);
+    // ADS1299::WREG(CH3SET, 0x01);delay(100);
+    // ADS1299::WREG(CH4SET, 0x01);delay(100);
+
+    // ADS1299::RREGS(0x00,0x17);     // read all registers starting at ID and ending at CONFIG4
+
+    // ADS1299::START();delay(100);
+    // ADS1299::RDATAC();delay(100);
+    
+
 
     // turn off all channels
     for (int chan=1; chan <= CHANNELS_PER_BOARD; chan++) {
@@ -103,6 +129,7 @@ void GEENIE::deactivateChannel(int N)
 	
   //check the inputs
   if ((N < 1) || (N > CHANNELS_PER_BOARD)) return;
+//   if ((N < 1) || (N > MAX_ADC_CHANNELS)) return;
   
   //proceed...first, disable any data collection
   ADS1299::SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
@@ -110,11 +137,12 @@ void GEENIE::deactivateChannel(int N)
   //shut down the channel
   int N_zeroRef = constrain(N-1,0,CHANNELS_PER_BOARD-1);  //subtracts 1 so that we're counting from 0, not 1
   reg = CH1SET+(byte)N_zeroRef;
+
   config = ADS1299::RREG(reg); delay(1);
   bitSet(config,7);  //left-most bit (bit 7) = 1, so this shuts down the channel
   if (use_neg_inputs) bitClear(config,3);  //bit 3 = 0 disconnects SRB2
   ADS1299::WREG(reg,config); delay(1);
-  
+
   //set how this channel affects the bias generation...
   alterBiasBasedOnChannelState(N);
 }; 
@@ -142,6 +170,7 @@ void GEENIE::activateChannel(int N,byte gainCode,byte inputCode)
   inputCode = inputCode & 0b00000111;  //bitwise AND to get just the bits we want and set the rest to zero
   configByte = configByte | inputCode; //bitwise OR to set just the gain bits high or low and leave the rest alone
   if (use_SRB2[N]) configByte |= 0b00001000;  //set the SRB2 flag...p44 in the data sheet
+  Serial.println(configByte, HEX);
   ADS1299::WREG(CH1SET+(byte)N,configByte); delay(1);
 
   //add this channel to the bias generation
@@ -151,7 +180,7 @@ void GEENIE::activateChannel(int N,byte gainCode,byte inputCode)
   // // though they don't strictly need to be done EVERY time we activate a channel.
   // // just once after the reset.
   
-  //activate SRB1 as the Negative input for all channels, if needed
+  // activate SRB1 as the Negative input for all channels, if needed
   setSRB1(use_SRB1());
 
   //Finalize the bias setup...activate buffer and use internal reference for center of bias creation, datasheet PDF p42
@@ -292,8 +321,8 @@ byte GEENIE::read_ads(){
 //Start continuous data acquisition
 void GEENIE::start()
 {
-    // ADS1299::RDATAC(); 
-    delay(1);           // enter Read Data Continuous mode
+    ADS1299::RDATAC(); 
+    delay(10);           // enter Read Data Continuous mode
     ADS1299::START();    //start the data acquisition
 }
 

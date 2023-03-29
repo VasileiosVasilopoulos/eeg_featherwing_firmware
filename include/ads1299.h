@@ -8,7 +8,6 @@
 
 class ADS1299 {
 public:
-    
     void initialize(int _CS, boolean _isDaisy, boolean _verbose);
     
     //ADS1299 SPI Command Definitions (Datasheet, p35)
@@ -45,7 +44,7 @@ public:
     //configuration
     int DRDY, CS; 		// pin numbers for DRDY and CS 
     // int DIVIDER;		// select SPI SCK frequency
-    int stat_1, stat_2;    // used to hold the status register for boards 1 and 2
+    int stat1_1,stat1_2, stat2_1, stat2_2;    // used to hold the status register for boards 1 and 2
     byte regData [24];	// array is used to mirror register data
     long channelData [16];	// array used when reading channel data board 1+2
     boolean verbose;		// turn on/off Serial feedback

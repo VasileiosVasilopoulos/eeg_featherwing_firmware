@@ -25,6 +25,10 @@ class GEENIE: public ADS1299 {
         void setAutoBiasGeneration(boolean state);
         void reset();
         void printAllRegisters(void);
+        void btn_1_isr();
+        void btn_2_isr();
+        void btn_3_isr();
+        void btn_4_isr();
     private:
         // ADS1299 Ads1299;
         boolean verbose;		// turn on/off Serial feedback
@@ -33,6 +37,7 @@ class GEENIE: public ADS1299 {
         boolean use_channels_for_bias;
         boolean use_SRB1(void);
         int n_chan_all_boards;
+        ADS1299 ads;
 };
 
 #endif

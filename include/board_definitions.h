@@ -27,6 +27,8 @@
 
 //BOARD OTHER
 #define CHANNELS_PER_BOARD (4)  // number of EEG channels
+#define MAX_ADC_CHANNELS (8)  // number of EEG channels
+
 
 // NEED CABLE
 #define ADS_RST 16
@@ -89,6 +91,7 @@
 #define ADSINPUT_NORMAL (0b00000000)
 #define ADSINPUT_SHORTED (0b00000001)
 #define ADSINPUT_TESTSIG (0b00000101)
+#define ADSINPUT_BIAS_DRP (0b00000110)
 
 //test signal choices...ADS1299 datasheet page 41
 #define ADSTESTSIG_AMP_1X (0b00000000)
