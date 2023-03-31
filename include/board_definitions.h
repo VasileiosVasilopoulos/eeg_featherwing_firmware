@@ -117,4 +117,18 @@
 #define OFF (0)
 #define ON (1)
 
+// Baud rates
+#define BAUD_RATE 115200
+#define BAUD_RATE_BLE 9600
+#define BAUD_RATE_MIN_NO_AVG 200000
+
+// File transmissions
+#define BOP 'A' // Begining of stream packet
+
+#define NUMBER_BYTES_PER_ADS_SAMPLE 24
+
+#define PCKT_START 0xA0	// prefix for data packet error checking
+#define PCKT_END 0xC0	// postfix for data packet error checking
+
+
 #endif

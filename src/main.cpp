@@ -7,9 +7,9 @@ GEENIE Geenie;
 
 void setup() {
   // put your setup code here, to run once:
+  delay(5000);
   Serial.begin(SERIAL_BAUDRATE);
   Serial.println("Ready");
-  delayMicroseconds(1000);
   Geenie.set_buttons();
   Geenie.initialize();
   // byte ads_addr = Geenie.read_ads();
@@ -27,12 +27,13 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  delay(1000);
-  Serial.println("Printing Data");
-  Geenie.printChannelDataAsText(8, 1);
-  // Serial.println(Geenie.isDataAvailable());
-  // Geenie.updateChannelData();
-  // Geenie.printChannelDataAsText(8, 0);
+  if (Geenie.streaming) {
+    if (Geenie.channelDataAvailable) {
+      // Read from the ADS(s), store data, set channelDataAvailable flag to false
+      Geenie.updateChannelData();
+      Geenie.sendChannelDataSerial(Geenie.PACKET_TYPE_ACCEL);
+    }
+  }
 }
 
 

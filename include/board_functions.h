@@ -5,6 +5,17 @@
 
 class GEENIE: public ADS1299 {
     public:
+
+        typedef enum PACKET_TYPE {
+            PACKET_TYPE_ACCEL,
+            PACKET_TYPE_RAW_AUX,
+            PACKET_TYPE_USER_DEFINED,
+            PACKET_TYPE_ACCEL_TIME_SET,
+            PACKET_TYPE_ACCEL_TIME_SYNC,
+            PACKET_TYPE_RAW_AUX_TIME_SET,
+            PACKET_TYPE_RAW_AUX_TIME_SYNC
+        };
+
         void initialize(boolean isDaisy=false);
         void set_buttons();
         byte read_ads();
@@ -29,6 +40,14 @@ class GEENIE: public ADS1299 {
         void btn_2_isr();
         void btn_3_isr();
         void btn_4_isr();
+
+        void sendChannelDataSerial(PACKET_TYPE packetType);
+        void writeSerial(uint8_t);
+        void ADS_writeChannelData(void);
+        void ADS_writeChannelDataAvgDaisy(void);
+
+
+
     private:
         // ADS1299 Ads1299;
         boolean verbose;		// turn on/off Serial feedback

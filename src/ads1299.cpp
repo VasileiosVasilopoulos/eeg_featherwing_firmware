@@ -70,7 +70,8 @@ void ADS1299::initialize(int _CS, boolean _isDaisy, boolean _verbose){
 void IRAM_ATTR ADS1299::ads_drdy(){
     // Serial.println("DRDY Low");
     // RDATA();
-    updateChannelData();
+    channelDataAvailable = true;
+    // updateChannelData();
     // printChannelDataAsText(8, 0);
 };
 
@@ -237,6 +238,9 @@ void ADS1299::WREGS(byte _address, byte _numRegistersMinusOne) {
 }
 
 void ADS1299::updateChannelData(){
+
+    channelDataAvailable = true;
+
 	byte inByte;
 	int nchan=8;  //assume 8 channel.  If needed, it automatically changes to 16 automatically in a later block.
     // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
@@ -251,7 +255,7 @@ void ADS1299::updateChannelData(){
 	for(int i = 0; i<4; i++){
 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
 			inByte = vspi->transfer(0x00);
-			channelData[i] = (channelData[i]<<8) | inByte;
+			boardChannelDataRaw[i] = (boardChannelDataRaw[i]<<8) | inByte;
 		}
 	}
 
@@ -263,7 +267,7 @@ void ADS1299::updateChannelData(){
 	for(int i = 4; i<8; i++){
 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
 			inByte = vspi->transfer(0x00);
-			channelData[i] = (channelData[i]<<8) | inByte;
+			boardChannelDataRaw[i] = (boardChannelDataRaw[i]<<8) | inByte;
 		}
 	}
 	
@@ -288,10 +292,10 @@ void ADS1299::updateChannelData(){
 	
 	//reformat the numbers
 	for(int i=0; i<nchan; i++){			// convert 3 byte 2's compliment to 4 byte 2's compliment	
-		if(bitRead(channelData[i],23) == 1){	
-			channelData[i] |= 0xFF000000;
+		if(bitRead(boardChannelDataRaw[i],23) == 1){	
+			boardChannelDataRaw[i] |= 0xFF000000;
 		}else{
-			channelData[i] &= 0x00FFFFFF;
+			boardChannelDataRaw[i] &= 0x00FFFFFF;
 		}
 	}
 }
@@ -322,7 +326,7 @@ void ADS1299::RDATA() {				//  use in Stop Read Continuous mode when DRDY goes l
 	for(int i = 0; i<4; i++){
 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
 			inByte = vspi->transfer(0x00);
-			channelData[i] = (channelData[i]<<8) | inByte;
+			boardChannelDataRaw[i] = (boardChannelDataRaw[i]<<8) | inByte;
 		}
 	}
 
@@ -334,7 +338,7 @@ void ADS1299::RDATA() {				//  use in Stop Read Continuous mode when DRDY goes l
 	for(int i = 4; i<8; i++){
 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
 			inByte = vspi->transfer(0x00);
-			channelData[i] = (channelData[i]<<8) | inByte;
+			boardChannelDataRaw[i] = (boardChannelDataRaw[i]<<8) | inByte;
 		}
 	}
 	
@@ -355,10 +359,10 @@ void ADS1299::RDATA() {				//  use in Stop Read Continuous mode when DRDY goes l
 	// }
 	
 	for(int i=0; i<nchan; i++){			// convert 3 byte 2's compliment to 4 byte 2's compliment	
-		if(bitRead(channelData[i],23) == 1){	
-			channelData[i] |= 0xFF000000;
+		if(bitRead(boardChannelDataRaw[i],23) == 1){	
+			boardChannelDataRaw[i] |= 0xFF000000;
 		}else{
-			channelData[i] &= 0x00FFFFFF;
+			boardChannelDataRaw[i] &= 0x00FFFFFF;
 		}
 	}
 	
@@ -465,7 +469,7 @@ void ADS1299::printChannelDataAsText(int N, long int sampleNumber)
 	//print each channel
 	for (int chan = 0; chan < N; chan++ )
 	{
-		Serial.print(channelData[chan]);
+		Serial.print(boardChannelDataRaw[chan]);
 		Serial.print(", ");
 	}
 	

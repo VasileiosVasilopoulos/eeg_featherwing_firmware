@@ -46,7 +46,16 @@ public:
     // int DIVIDER;		// select SPI SCK frequency
     int stat1_1,stat1_2, stat2_1, stat2_2;    // used to hold the status register for boards 1 and 2
     byte regData [24];	// array is used to mirror register data
-    long channelData [16];	// array used when reading channel data board 1+2
+    byte boardChannelDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];    // array to hold raw channel data
+    byte daisyChannelDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];
+    byte lastBoardDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];
+    byte lastDaisyDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];
+    byte meanBoardDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];
+    byte meanDaisyDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];
+    byte sampleCounter;
+    byte sampleCounterBLE;
+
+    // long channelData [16];	// array used when reading channel data board 1+2
     boolean verbose;		// turn on/off Serial feedback
     boolean isDaisy;		// does this have a daisy chain board?
     
@@ -55,6 +64,10 @@ public:
     static const int spiClk = 1000000; // 1 MHz
 
     SPIClass * vspi = NULL;
+
+    volatile boolean channelDataAvailable;
+
+    boolean streaming;
 };
 
 

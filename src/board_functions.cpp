@@ -14,6 +14,7 @@ void IRAM_ATTR GEENIE::btn_1_isr(){
         button_pressed = now;
         Serial.println("Button 1 pressed");
         start();
+        streaming = true;
     }
 };
 
@@ -23,6 +24,7 @@ void IRAM_ATTR GEENIE::btn_2_isr(){
         button_pressed = now;
         Serial.println("Button 2 pressed");
         stop();
+        streaming = false;
     }
 };
 
@@ -70,6 +72,7 @@ void GEENIE::initialize(boolean isDaisy){
 
     delay(100);
     verbose = true;
+    streaming = false;
 
     setSRB();
 
@@ -324,6 +327,7 @@ void GEENIE::start()
     ADS1299::RDATAC(); 
     delay(10);           // enter Read Data Continuous mode
     ADS1299::START();    //start the data acquisition
+    streaming = true;
 }
 
 //Stop the continuous data acquisition
@@ -406,4 +410,63 @@ void GEENIE::printAllRegisters(void)
         delay(100);  //stall to let all that data get read by the PC
         ADS1299::RREGS(0x11,0x17-0x11);     // write the rest
         verbose = prevVerboseState;
+}
+
+void GEENIE::sendChannelDataSerial(PACKET_TYPE packetType)
+{
+
+  writeSerial(BOP);   // 1 byte - 0x41
+  writeSerial(sampleCounter); // 1 byte
+  ADS_writeChannelData();     // 24 bytes
+
+  // switch (packetType)
+  // {
+  // case PACKET_TYPE_ACCEL:
+  //   accelWriteAxisDataSerial(); // 6 bytes
+  //   break;
+  // case PACKET_TYPE_ACCEL_TIME_SET:
+  //   sendTimeWithAccelSerial();
+  //   curPacketType = PACKET_TYPE_ACCEL_TIME_SYNC;
+  //   break;
+  // case PACKET_TYPE_ACCEL_TIME_SYNC:
+  //   sendTimeWithAccelSerial();
+  //   break;
+  // case PACKET_TYPE_RAW_AUX_TIME_SET:
+  //   sendTimeWithRawAuxSerial();
+  //   curPacketType = PACKET_TYPE_RAW_AUX_TIME_SYNC;
+  //   break;
+  // case PACKET_TYPE_RAW_AUX_TIME_SYNC:
+  //   sendTimeWithRawAuxSerial();
+  //   break;
+  // case PACKET_TYPE_RAW_AUX:
+  // default:
+  //   writeAuxDataSerial(); // 6 bytes
+  //   break;
+  // }
+
+  writeSerial((uint8_t)(PCKT_END | packetType)); // 1 byte
+}
+
+void GEENIE::writeSerial(uint8_t c)
+{
+  if (Serial)
+  {
+    Serial.write(c);
+  }
+}
+
+void GEENIE::ADS_writeChannelData()
+{
+  ADS_writeChannelDataAvgDaisy();
+}
+
+void GEENIE::ADS_writeChannelDataAvgDaisy()
+{
+  if (Serial)
+  {
+    for (int i = 0; i < 24; i++)
+    {
+      writeSerial(boardChannelDataRaw[i]);
+    }
+  }
 }
