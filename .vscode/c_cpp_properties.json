@@ -205,7 +205,7 @@
                 ]
             },
             "defines": [
-                "PLATFORMIO=60106",
+                "PLATFORMIO=60107",
                 "ARDUINO_FEATHER_ESP32",
                 "ESP32",
                 "ESP_PLATFORM",
