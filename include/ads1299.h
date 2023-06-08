@@ -68,6 +68,11 @@ public:
     volatile boolean channelDataAvailable;
 
     boolean streaming;
+
+    short auxData[3]; // This is user faceing
+
+    
+    unsigned long lastSampleTime;
 };
 
 

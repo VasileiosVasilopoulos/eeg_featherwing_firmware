@@ -239,7 +239,9 @@ void ADS1299::WREGS(byte _address, byte _numRegistersMinusOne) {
 
 void ADS1299::updateChannelData(){
 
-    channelDataAvailable = true;
+    channelDataAvailable = false;
+    lastSampleTime = millis();
+    // Serial.println(millis());
 
 	byte inByte;
 	int nchan=8;  //assume 8 channel.  If needed, it automatically changes to 16 automatically in a later block.

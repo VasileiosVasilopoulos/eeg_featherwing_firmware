@@ -73,6 +73,7 @@ void GEENIE::initialize(boolean isDaisy){
     delay(100);
     verbose = true;
     streaming = false;
+    lastSampleTime = 0;
 
     setSRB();
 
@@ -100,6 +101,7 @@ void GEENIE::reset(){
 
     // ADS1299::WREG(CONFIG3, 0xE0);delay(100);
     // ADS1299::WREG(CONFIG1, 0x96);delay(100);
+    WREG(CONFIG1, 0b10110110);delay(100); // tell on-board ADS to output its clk, set the data rate to 250SPS
     // ADS1299::WREG(CONFIG2, 0xC0);delay(100);
     // ADS1299::WREG(CH1SET, 0x01);delay(100);
     // ADS1299::WREG(CH2SET, 0x01);delay(100);
@@ -418,6 +420,12 @@ void GEENIE::sendChannelDataSerial(PACKET_TYPE packetType)
   writeSerial(BOP);   // 1 byte - 0x41
   writeSerial(sampleCounter); // 1 byte
   ADS_writeChannelData();     // 24 bytes
+  // Write  Timestamp
+    // serialize the number, placing the MSB in lower packets
+  for (int j = 3; j >= 0; j--)
+  {
+    writeSerial((uint8_t)(lastSampleTime >> (j * 8)));
+  }
 
   // switch (packetType)
   // {
@@ -443,8 +451,10 @@ void GEENIE::sendChannelDataSerial(PACKET_TYPE packetType)
   //   writeAuxDataSerial(); // 6 bytes
   //   break;
   // }
-
+  // writeAuxDataSerial();
   writeSerial((uint8_t)(PCKT_END | packetType)); // 1 byte
+
+  sampleCounter += 1;
 }
 
 void GEENIE::writeSerial(uint8_t c)
@@ -470,3 +480,401 @@ void GEENIE::ADS_writeChannelDataAvgDaisy()
     }
   }
 }
+
+void GEENIE::writeAuxDataSerial(void)
+{
+  for (int i = 0; i < 3; i++)
+  {
+    writeSerial((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
+    writeSerial((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
+  }
+}
+
+/**
+* @description Called in every `loop()` and checks `Serial0`
+* @returns {boolean} - `true` if there is data ready to be read
+*/
+boolean GEENIE::hasDataSerial(void)
+{
+  // TODO: Need to undo this comment out
+  // if (!Serial0) return false;
+  // if (!iSerial0.rx) return false;
+  if (Serial.available())
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+char GEENIE::getCharSerial(void)
+{
+  return Serial.read();
+}
+
+// void GEENIE::loop(void)
+// {
+//   if (isMultiCharCmd)
+//   {
+//     checkMultiCharCmdTimer();
+//   }
+// }
+
+/**
+* @description Process one char at a time from serial port. This is the main
+*  command processor for the OpenBCI system. Considered mission critical for
+*  normal operation.
+* @param `character` {char} - The character to process.
+* @return {boolean} - `true` if the command was recognized, `false` if not
+*/
+// boolean GEENIE::processChar(char character)
+// {
+//   // if (curBoardMode == BOARD_MODE_DEBUG || curDebugMode == DEBUG_MODE_ON)
+//   // {
+//   Serial.print("pC: ");
+//   Serial.println(character);
+//   // }
+
+//   // if (checkMultiCharCmdTimer())
+//   // { // we are in a multi char command
+//   //   switch (getMultiCharCommand())
+//   //   {
+//   //   case MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_CHANNEL:
+//   //     processIncomingChannelSettings(character);
+//   //     break;
+//   //   case MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_LEADOFF:
+//   //     processIncomingLeadOffSettings(character);
+//   //     break;
+//   //   case MULTI_CHAR_CMD_SETTINGS_BOARD_MODE:
+//   //     processIncomingBoardMode(character);
+//   //     break;
+//   //   case MULTI_CHAR_CMD_SETTINGS_SAMPLE_RATE:
+//   //     processIncomingSampleRate(character);
+//   //     break;
+//   //   case MULTI_CHAR_CMD_INSERT_MARKER:
+//   //     processInsertMarker(character);
+//   //     break;
+//   //   default:
+//   //     break;
+//   //   }
+//   // }
+//   // else
+//   // { // Normal...
+//   switch (character)
+//   {
+//   //TURN CHANNELS ON/OFF COMMANDS
+//   case OPENBCI_CHANNEL_OFF_1:
+//     streamSafeChannelDeactivate(1);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_2:
+//     streamSafeChannelDeactivate(2);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_3:
+//     streamSafeChannelDeactivate(3);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_4:
+//     streamSafeChannelDeactivate(4);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_5:
+//     streamSafeChannelDeactivate(5);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_6:
+//     streamSafeChannelDeactivate(6);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_7:
+//     streamSafeChannelDeactivate(7);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_8:
+//     streamSafeChannelDeactivate(8);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_9:
+//     streamSafeChannelDeactivate(9);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_10:
+//     streamSafeChannelDeactivate(10);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_11:
+//     streamSafeChannelDeactivate(11);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_12:
+//     streamSafeChannelDeactivate(12);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_13:
+//     streamSafeChannelDeactivate(13);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_14:
+//     streamSafeChannelDeactivate(14);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_15:
+//     streamSafeChannelDeactivate(15);
+//     break;
+//   case OPENBCI_CHANNEL_OFF_16:
+//     streamSafeChannelDeactivate(16);
+//     break;
+
+//   case OPENBCI_CHANNEL_ON_1:
+//     streamSafeChannelActivate(1);
+//     break;
+//   case OPENBCI_CHANNEL_ON_2:
+//     streamSafeChannelActivate(2);
+//     break;
+//   case OPENBCI_CHANNEL_ON_3:
+//     streamSafeChannelActivate(3);
+//     break;
+//   case OPENBCI_CHANNEL_ON_4:
+//     streamSafeChannelActivate(4);
+//     break;
+//   case OPENBCI_CHANNEL_ON_5:
+//     streamSafeChannelActivate(5);
+//     break;
+//   case OPENBCI_CHANNEL_ON_6:
+//     streamSafeChannelActivate(6);
+//     break;
+//   case OPENBCI_CHANNEL_ON_7:
+//     streamSafeChannelActivate(7);
+//     break;
+//   case OPENBCI_CHANNEL_ON_8:
+//     streamSafeChannelActivate(8);
+//     break;
+//   case OPENBCI_CHANNEL_ON_9:
+//     streamSafeChannelActivate(9);
+//     break;
+//   case OPENBCI_CHANNEL_ON_10:
+//     streamSafeChannelActivate(10);
+//     break;
+//   case OPENBCI_CHANNEL_ON_11:
+//     streamSafeChannelActivate(11);
+//     break;
+//   case OPENBCI_CHANNEL_ON_12:
+//     streamSafeChannelActivate(12);
+//     break;
+//   case OPENBCI_CHANNEL_ON_13:
+//     streamSafeChannelActivate(13);
+//     break;
+//   case OPENBCI_CHANNEL_ON_14:
+//     streamSafeChannelActivate(14);
+//     break;
+//   case OPENBCI_CHANNEL_ON_15:
+//     streamSafeChannelActivate(15);
+//     break;
+//   case OPENBCI_CHANNEL_ON_16:
+//     streamSafeChannelActivate(16);
+//     break;
+
+//   // TEST SIGNAL CONTROL COMMANDS
+//   case OPENBCI_TEST_SIGNAL_CONNECT_TO_GROUND:
+//     activateAllChannelsToTestCondition(ADSINPUT_SHORTED, ADSTESTSIG_NOCHANGE, ADSTESTSIG_NOCHANGE);
+//     break;
+//   case OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_1X_SLOW:
+//     activateAllChannelsToTestCondition(ADSINPUT_TESTSIG, ADSTESTSIG_AMP_1X, ADSTESTSIG_PULSE_SLOW);
+//     break;
+//   case OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_1X_FAST:
+//     activateAllChannelsToTestCondition(ADSINPUT_TESTSIG, ADSTESTSIG_AMP_1X, ADSTESTSIG_PULSE_FAST);
+//     break;
+//   case OPENBCI_TEST_SIGNAL_CONNECT_TO_DC:
+//     activateAllChannelsToTestCondition(ADSINPUT_TESTSIG, ADSTESTSIG_AMP_2X, ADSTESTSIG_DCSIG);
+//     break;
+//   case OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_2X_SLOW:
+//     activateAllChannelsToTestCondition(ADSINPUT_TESTSIG, ADSTESTSIG_AMP_2X, ADSTESTSIG_PULSE_SLOW);
+//     break;
+//   case OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_2X_FAST:
+//     activateAllChannelsToTestCondition(ADSINPUT_TESTSIG, ADSTESTSIG_AMP_2X, ADSTESTSIG_PULSE_FAST);
+//     break;
+
+//   // CHANNEL SETTING COMMANDS
+//   case OPENBCI_CHANNEL_CMD_SET: // This is a multi char command with a timeout
+//     startMultiCharCmdTimer(MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_CHANNEL);
+//     numberOfIncomingSettingsProcessedChannel = 1;
+//     break;
+
+//   // LEAD OFF IMPEDANCE DETECTION COMMANDS
+//   case OPENBCI_CHANNEL_IMPEDANCE_SET:
+//     startMultiCharCmdTimer(MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_LEADOFF);
+//     numberOfIncomingSettingsProcessedLeadOff = 1;
+//     break;
+
+//   case OPENBCI_CHANNEL_DEFAULT_ALL_SET: // reset all channel settings to default
+//     if (!streaming)
+//     {
+//       printAll("updating channel settings to");
+//       printAll(" default");
+//       sendEOT();
+//     }
+//     streamSafeSetAllChannelsToDefault();
+//     break;
+//   case OPENBCI_CHANNEL_DEFAULT_ALL_REPORT: // report the default settings
+//     reportDefaultChannelSettings();
+//     break;
+
+//   // DAISY MODULE COMMANDS
+//   case OPENBCI_CHANNEL_MAX_NUMBER_8: // use 8 channel mode
+//     if (daisyPresent)
+//     {
+//       removeDaisy();
+//     }
+//     else if (wifi.present && wifi.tx)
+//     {
+//       wifi.sendStringLast("No daisy to remove");
+//     }
+//     break;
+//   case OPENBCI_CHANNEL_MAX_NUMBER_16: // use 16 channel mode
+//     if (daisyPresent == false)
+//     {
+//       attachDaisy();
+//     }
+//     if (daisyPresent)
+//     {
+//       printAll("16");
+//     }
+//     else
+//     {
+//       printAll("8");
+//     }
+//     sendEOT();
+//     break;
+
+//   // STREAM DATA AND FILTER COMMANDS
+//   case OPENBCI_STREAM_START: // stream data
+//     if (curAccelMode == ACCEL_MODE_ON)
+//     {
+//       enable_accel(RATE_25HZ);
+//     } // fire up the accelerometer if you want it
+//     wifi.tx = commandFromSPI;
+//     if (wifi.present && wifi.tx)
+//     {
+//       wifi.sendStringLast("Stream started");
+//       iSerial0.tx = false;
+//     }
+//     // Reads if the command is not from the SPI port and we are not in debug mode
+//     if (!commandFromSPI && !iSerial1.tx)
+//     {
+//       // If the sample rate is higher than 250, we need to drop down to 250Hz
+//       //  to not break the RFduino system that can't handle above 250SPS.
+//       if (curSampleRate != SAMPLE_RATE_250)
+//       {
+//         streamSafeSetSampleRate(SAMPLE_RATE_250);
+//         delay(50);
+//       }
+//     }
+//     streamStart(); // turn on the fire hose
+//     break;
+//   case OPENBCI_STREAM_STOP: // stop streaming data
+//     if (curAccelMode == ACCEL_MODE_ON)
+//     {
+//       disable_accel();
+//     } // shut down the accelerometer if you're using it
+//     wifi.tx = true;
+//     streamStop();
+//     if (wifi.present && wifi.tx)
+//     {
+//       wifi.sendStringLast("Stream stopped");
+//     }
+//     break;
+
+//   //  INITIALIZE AND VERIFY
+//   case OPENBCI_MISC_SOFT_RESET:
+//     boardReset(); // initialize ADS and read device IDs
+//     break;
+//   //  QUERY THE ADS AND ACCEL REGITSTERS
+//   case OPENBCI_MISC_QUERY_REGISTER_SETTINGS:
+//     if (!streaming)
+//     {
+//       printAllRegisters(); // print the ADS and accelerometer register values
+//     }
+//     break;
+
+//   // TIME SYNC
+//   case OPENBCI_TIME_SET:
+//     // Set flag to send time packet
+//     if (!streaming)
+//     {
+//       printAll("Time stamp ON");
+//       sendEOT();
+//     }
+//     curTimeSyncMode = TIME_SYNC_MODE_ON;
+//     setCurPacketType();
+//     break;
+
+//   case OPENBCI_TIME_STOP:
+//     // Stop the Sync
+//     if (!streaming)
+//     {
+//       printAll("Time stamp OFF");
+//       sendEOT();
+//     }
+//     curTimeSyncMode = TIME_SYNC_MODE_OFF;
+//     setCurPacketType();
+//     break;
+
+//   // BOARD TYPE SET TYPE
+//   case OPENBCI_BOARD_MODE_SET:
+//     startMultiCharCmdTimer(MULTI_CHAR_CMD_SETTINGS_BOARD_MODE);
+//     optionalArgCounter = 0;
+//     break;
+
+//   // Sample rate set
+//   case OPENBCI_SAMPLE_RATE_SET:
+//     startMultiCharCmdTimer(MULTI_CHAR_CMD_SETTINGS_SAMPLE_RATE);
+//     break;
+
+//   // Insert Marker into the EEG data stream
+//   case OPENBCI_INSERT_MARKER:
+//     startMultiCharCmdTimer(MULTI_CHAR_CMD_INSERT_MARKER);
+//     break;
+
+//   case OPENBCI_WIFI_ATTACH:
+//     if (wifi.attach())
+//     {
+//       printSuccess();
+//       printSerial("Wifi attached");
+//       sendEOT();
+//     }
+//     else
+//     {
+//       printFailure();
+//       printSerial("Wifi not attached");
+//       sendEOT();
+//     }
+//     break;
+//   case OPENBCI_WIFI_REMOVE:
+//     if (wifi.remove())
+//     {
+//       printSuccess();
+//       printSerial("Wifi removed");
+//     }
+//     else
+//     {
+//       printFailure();
+//       printSerial("Wifi not removed");
+//     }
+//     sendEOT();
+//     break;
+//   case OPENBCI_WIFI_STATUS:
+//     if (wifi.present)
+//     {
+//       printAll("Wifi present");
+//     }
+//     else
+//     {
+//       printAll("Wifi not present, send {");
+//       printAll(" to attach the shield");
+//     }
+//     sendEOT();
+//     break;
+//   case OPENBCI_WIFI_RESET:
+//     wifi.reset();
+//     printSerial("Wifi soft reset");
+//     sendEOT();
+//     break;
+//   case OPENBCI_GET_VERSION:
+//     printAll("v3.1.2");
+//     sendEOT();
+//     break;
+//   default:
+//     return false;
+//   }
+//   // }
+//   return true;
+// }
