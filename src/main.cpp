@@ -14,8 +14,8 @@ void setup() {
   Geenie.initialize();
   // byte ads_addr = Geenie.read_ads();
 
-  Geenie.activateChannel(1, ADS_GAIN24, ADSINPUT_NORMAL);
-  Geenie.activateChannel(2, ADS_GAIN24, ADSINPUT_NORMAL);
+  // Geenie.activateChannel(1, ADS_GAIN24, ADSINPUT_NORMAL);
+  // Geenie.activateChannel(2, ADS_GAIN24, ADSINPUT_NORMAL);
   Geenie.activateChannel(3, ADS_GAIN24, ADSINPUT_NORMAL);
   Geenie.activateChannel(4, ADS_GAIN24, ADSINPUT_NORMAL);
   
