@@ -8,7 +8,7 @@
 
 class ADS1299 {
 public:
-    void initialize(int _CS, boolean _isDaisy, boolean _verbose);
+    void initialize(int _CS, boolean _verbose);
     
     //ADS1299 SPI Command Definitions (Datasheet, p35)
     //System Commands
@@ -57,7 +57,6 @@ public:
 
     // long channelData [16];	// array used when reading channel data board 1+2
     boolean verbose;		// turn on/off Serial feedback
-    boolean isDaisy;		// does this have a daisy chain board?
     
     int n_chan_all_boards;
 

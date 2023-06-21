@@ -64,11 +64,14 @@ void GEENIE::set_buttons(){
   attachInterrupt(BTN_4, std::bind(&GEENIE::btn_4_isr,this), FALLING);
 }
 
-void GEENIE::initialize(boolean isDaisy){
+void GEENIE::initialize(){
     // Serial.begin(SERIAL_BAUDRATE);
-    // ads = ADS1299();
+    ads_1 = ADS1299();
+    ads_2 = ADS1299();
+
     // ADS1299::initialize();
-    ADS1299::initialize(BOARD_ADS, isDaisy, true);
+    ads_1->initialize(CS_ADS_1, true);
+    ads_2->initialize(CS_ADS_2, true);
 
     delay(100);
     verbose = true;
@@ -77,12 +80,11 @@ void GEENIE::initialize(boolean isDaisy){
 
     setSRB();
 
-    delay(4000);
+    delay(500);
 
     reset();
 
     n_chan_all_boards = CHANNELS_PER_BOARD;
-    if (isDaisy) n_chan_all_boards = 2*CHANNELS_PER_BOARD;
 
     //set default state for internal test signal
     //ADS1299::WREG(CONFIG2,0b11010000);delay(1);   //set internal test signal, default amplitude, default speed, datasheet PDF Page 41
@@ -94,14 +96,17 @@ void GEENIE::initialize(boolean isDaisy){
 }
 
 void GEENIE::reset(){
-    ADS1299::RESET();             // send RESET command to default all registers
-    ADS1299::SDATAC();            // exit Read Data Continuous mode to communicate with ADS
+    ads_1->RESET();             // send RESET command to default all registers
+    ads_1->WREG(CONFIG1, 0b10110110);delay(100);
+    ads_1->SDATAC();            // exit Read Data Continuous mode to communicate with ADS
 
+    ads_2->RESET(); 
+    ads_2->WREG(CONFIG1, 0b10110110);delay(100);
+    ads_2->SDATAC();
     // delay(1000);
 
     // ADS1299::WREG(CONFIG3, 0xE0);delay(100);
     // ADS1299::WREG(CONFIG1, 0x96);delay(100);
-    WREG(CONFIG1, 0b10110110);delay(100); // tell on-board ADS to output its clk, set the data rate to 250SPS
     // ADS1299::WREG(CONFIG2, 0xC0);delay(100);
     // ADS1299::WREG(CH1SET, 0x01);delay(100);
     // ADS1299::WREG(CH2SET, 0x01);delay(100);
@@ -112,9 +117,7 @@ void GEENIE::reset(){
 
     // ADS1299::START();delay(100);
     // ADS1299::RDATAC();delay(100);
-    
-
-
+     
     // turn off all channels
     for (int chan=1; chan <= CHANNELS_PER_BOARD; chan++) {
         deactivateChannel(chan);  //turn off the channel
@@ -134,20 +137,24 @@ void GEENIE::deactivateChannel(int N)
 	
   //check the inputs
   if ((N < 1) || (N > CHANNELS_PER_BOARD)) return;
-//   if ((N < 1) || (N > MAX_ADC_CHANNELS)) return;
   
-  //proceed...first, disable any data collection
-  ADS1299::SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
-
-  //shut down the channel
-  int N_zeroRef = constrain(N-1,0,CHANNELS_PER_BOARD-1);  //subtracts 1 so that we're counting from 0, not 1
-  reg = CH1SET+(byte)N_zeroRef;
-
-  config = ADS1299::RREG(reg); delay(1);
-  bitSet(config,7);  //left-most bit (bit 7) = 1, so this shuts down the channel
-  if (use_neg_inputs) bitClear(config,3);  //bit 3 = 0 disconnects SRB2
-  ADS1299::WREG(reg,config); delay(1);
-
+  if (N>CHANNELS_PER_ADC) {
+    ads_2->SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
+    int N_zeroRef = constrain(N-1,0,CHANNELS_PER_BOARD-1);  //subtracts 1 so that we're counting from 0, not 1
+    reg = CH1SET+(byte)N_zeroRef;
+    config = ads_2->RREG(reg); delay(1);
+    bitSet(config,7);  //left-most bit (bit 7) = 1, so this shuts down the channel
+    if (use_neg_inputs) bitClear(config,3);  //bit 3 = 0 disconnects SRB2
+    ads_2->WREG(reg,config); delay(1);
+  } else {
+    ads_1->SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS   
+    int N_zeroRef = constrain(N-1,0,CHANNELS_PER_BOARD-1);  //subtracts 1 so that we're counting from 0, not 1
+    reg = CH1SET+(byte)N_zeroRef;
+    config = ads_1->RREG(reg); delay(1);
+    bitSet(config,7);  //left-most bit (bit 7) = 1, so this shuts down the channel
+    if (use_neg_inputs) bitClear(config,3);  //bit 3 = 0 disconnects SRB2
+    ads_1->WREG(reg,config); delay(1);
+  } 
   //set how this channel affects the bias generation...
   alterBiasBasedOnChannelState(N);
 }; 
@@ -164,8 +171,8 @@ void GEENIE::activateChannel(int N,byte gainCode,byte inputCode)
   if ((N < 1) || (N > CHANNELS_PER_BOARD)) return;
   
   //proceed...first, disable any data collection
-  ADS1299::SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
-
+  ads_1->SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
+  ads_2->SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
   //active the channel using the given gain.  Set MUX for normal operation
   //see ADS1299 datasheet, PDF p44
   N = constrain(N-1,0,CHANNELS_PER_BOARD-1);  //shift down by one
@@ -176,7 +183,8 @@ void GEENIE::activateChannel(int N,byte gainCode,byte inputCode)
   configByte = configByte | inputCode; //bitwise OR to set just the gain bits high or low and leave the rest alone
   if (use_SRB2[N]) configByte |= 0b00001000;  //set the SRB2 flag...p44 in the data sheet
   Serial.println(configByte, HEX);
-  ADS1299::WREG(CH1SET+(byte)N,configByte); delay(1);
+  ads_1->WREG(CH1SET+(byte)N,configByte); delay(1);
+  ads_2->WREG(CH1SET+(byte)N,configByte); delay(1);
 
   //add this channel to the bias generation
   alterBiasBasedOnChannelState(N);
@@ -189,7 +197,8 @@ void GEENIE::activateChannel(int N,byte gainCode,byte inputCode)
   setSRB1(use_SRB1());
 
   //Finalize the bias setup...activate buffer and use internal reference for center of bias creation, datasheet PDF p42
-  ADS1299::WREG(CONFIG3,0b11101100); delay(1); 
+  ads_1->WREG(CONFIG3,0b11101100); delay(1);
+  ads_2->WREG(CONFIG3,0b11101100); delay(1);  
 };
 
 //note that N here one-referenced (ie [1...N]), not [0...N-1]
@@ -211,7 +220,7 @@ boolean GEENIE::isChannelActive(int N_oneRef) {
 	 
 	 //get whether channel is active or not
 	 byte reg = CH1SET+(byte)N_zeroRef;
-	 byte config = ADS1299::RREG(reg); delay(1);
+	 byte config = ads_1->RREG(reg); delay(1);
 	 boolean chanState = bitRead(config,7);
 	 return chanState;
 }

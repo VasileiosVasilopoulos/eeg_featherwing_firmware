@@ -1,24 +1,23 @@
 #ifndef _____BOARD_DEFINITIONS_H
 #define _____BOARD_DEFINITIONS_H
 
-//FROM OPENBCI
-#define BOTH_ADS 5	        // Slave Select Both ADS chips
-
 
 // BOARD PINOUTS
 #define BTN_1 A0
 #define BTN_2 25
 #define BTN_3 34
 #define BTN_4 39
-#define ADS_DRDY 36
-#define BOARD_ADS 4
+
+#define DRDY_ADS_1 36
+#define DRDY_ADS_2 36
+#define CS_ADS_1 4
+#define CS_ADS_2 4
+#define CS_SD 33
+
 #define SCLK 5
 #define DIN 18
 #define DOUT 19
-#define ACC_INT_1 13
-#define ACC_INT_2 12
-#define DAISY_ADS 27
-#define SD_CS 33
+
 #define SCRN_BTN_A 15
 #define SCRN_BTN_B 32
 #define SCRN_BTN_C 14
@@ -26,9 +25,8 @@
 #define I2C_SDA 23
 
 //BOARD OTHER
-#define CHANNELS_PER_BOARD (4)  // number of EEG channels
-#define MAX_ADC_CHANNELS (8)  // number of EEG channels
-
+#define CHANNELS_PER_ADC (4)  // number of EEG channels
+#define CHANNELS_PER_BOARD (8)  // number of EEG channels
 
 // NEED CABLE
 #define ADS_RST 16
