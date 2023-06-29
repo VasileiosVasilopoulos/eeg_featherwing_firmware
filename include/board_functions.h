@@ -18,7 +18,8 @@ class GEENIE: public ADS1299 {
 
         void initialize();
         void set_buttons();
-        byte read_ads();
+        byte read_ads_1();
+        byte read_ads_2();
         void setSRB();			//Set which version of OpenBCI you're using.
         void start();
         void stop();
@@ -60,8 +61,6 @@ class GEENIE: public ADS1299 {
         boolean use_channels_for_bias;
         boolean use_SRB1(void);
         int n_chan_all_boards;
-        ADS1299 ads_1;
-        ADS1299 ads_2;
         // boolean isMultiCharCmd;  // A multi char command is in progress
 };
 

@@ -8,7 +8,7 @@
 
 class ADS1299 {
 public:
-    void initialize(int _CS, boolean _verbose);
+    void initialize(int _CS_1, int _DRDY_1, int CS_2, int _DRDY_2, boolean _verbose);
     
     //ADS1299 SPI Command Definitions (Datasheet, p35)
     //System Commands
@@ -24,16 +24,25 @@ public:
     void RDATA();
     
     //Register Read/Write Commands
-    byte getDeviceID();
-    void ads_drdy();
-    byte RREG(byte _address);
-    void RREGS(byte _address, byte _numRegistersMinusOne);     
+    byte getDeviceID_1();
+    byte getDeviceID_2();
+    void ads_drdy_1();
+    void ads_drdy_2();
+    byte RREG_1(byte _address);
+    byte RREG_2(byte _address);
+    void RREGS_1(byte _address, byte _numRegistersMinusOne);     
+    void RREGS_2(byte _address, byte _numRegistersMinusOne);
     void printRegisterName(byte _address);
-    void WREG(byte _address, byte _value); 
-    void WREGS(byte _address, byte _numRegistersMinusOne); 
+    void WREG_1(byte _address, byte _value); 
+    void WREG_2(byte _address, byte _value); 
+    void WREG_BOTH(byte _address, byte _value); 
+    void WREGS_1(byte _address, byte _numRegistersMinusOne); 
+    void WREGS_2(byte _address, byte _numRegistersMinusOne); 
+    void WREGS_BOTH(byte _address, byte _numRegistersMinusOne); 
     void printHex(byte _data);
     void updateChannelData();
-    
+    void updateChannelData_1();
+    void updateChannelData_2();
 
     void printChannelDataAsText(int N, long int sampleNumber);
     
@@ -42,11 +51,13 @@ public:
     // byte transfer(byte _data);
 
     //configuration
-    int DRDY, CS; 		// pin numbers for DRDY and CS 
+    int DRDY_1, CS_1, DRDY_2, CS_2; 		// pin numbers for DRDY and CS 
     // int DIVIDER;		// select SPI SCK frequency
     int stat1_1,stat1_2, stat2_1, stat2_2;    // used to hold the status register for boards 1 and 2
-    byte regData [24];	// array is used to mirror register data
+    byte regData_1 [24];	// array is used to mirror register data
+    byte regData_2 [24];	// array is used to mirror register data
     byte boardChannelDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];    // array to hold raw channel data
+    int boardChannelDataInt[NUMBER_CHANNELS_PER_ADS_SAMPLE];    // array used when reading channel data as ints
     byte daisyChannelDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];
     byte lastBoardDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];
     byte lastDaisyDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];
@@ -62,9 +73,10 @@ public:
 
     static const int spiClk = 1000000; // 1 MHz
 
-    SPIClass * vspi = NULL;
+    SPIClass * vspi_1 = NULL;
+    // SPIClass * vspi_2 = NULL;
 
-    volatile boolean channelDataAvailable;
+    volatile boolean channelDataAvailable_1, channelDataAvailable_2;
 
     boolean streaming;
 

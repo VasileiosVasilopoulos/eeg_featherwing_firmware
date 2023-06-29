@@ -66,26 +66,25 @@ void GEENIE::set_buttons(){
 
 void GEENIE::initialize(){
     // Serial.begin(SERIAL_BAUDRATE);
-    ads_1 = ADS1299();
-    ads_2 = ADS1299();
-
-    // ADS1299::initialize();
-    ads_1->initialize(CS_ADS_1, true);
-    ads_2->initialize(CS_ADS_2, true);
-
+    
+    ADS1299::initialize(CS_ADS_1, DRDY_ADS_1, CS_ADS_2, DRDY_ADS_2, true);
     delay(100);
+
     verbose = true;
     streaming = false;
     lastSampleTime = 0;
 
     setSRB();
-
     delay(500);
 
     reset();
 
     n_chan_all_boards = CHANNELS_PER_BOARD;
 
+    
+    //Finalize the bias setup...activate buffer and use internal reference for center of bias creation, datasheet PDF p42
+    ADS1299::WREG_1(CONFIG3,0b11111100); delay(1);
+    ADS1299::WREG_2(CONFIG3,0b11101000); delay(1);
     //set default state for internal test signal
     //ADS1299::WREG(CONFIG2,0b11010000);delay(1);   //set internal test signal, default amplitude, default speed, datasheet PDF Page 41
     //ADS1299::WREG(CONFIG2,0b11010001);delay(1);   //set internal test signal, default amplitude, 2x speed, datasheet PDF Page 41
@@ -96,16 +95,16 @@ void GEENIE::initialize(){
 }
 
 void GEENIE::reset(){
-    ads_1->RESET();             // send RESET command to default all registers
-    ads_1->WREG(CONFIG1, 0b10110110);delay(100);
-    ads_1->SDATAC();            // exit Read Data Continuous mode to communicate with ADS
+    ADS1299::RESET();             // send RESET command to default all registers
+    ADS1299::WREG_1(CONFIG1, 0b11010110);delay(100);
+    ADS1299::WREG_2(CONFIG1, 0b11010110);delay(100);
+    ADS1299::SDATAC();            // exit Read Data Continuous mode to communicate with ADS
 
-    ads_2->RESET(); 
-    ads_2->WREG(CONFIG1, 0b10110110);delay(100);
-    ads_2->SDATAC();
     // delay(1000);
 
-    // ADS1299::WREG(CONFIG3, 0xE0);delay(100);
+    ADS1299::WREG_1(BIAS_SENSP, 0b00001111);delay(100);
+    ADS1299::WREG_2(BIAS_SENSP, 0b00000000);delay(100);
+    ADS1299::WREG_BOTH(_GPIO, 0b00000000);delay(100);
     // ADS1299::WREG(CONFIG1, 0x96);delay(100);
     // ADS1299::WREG(CONFIG2, 0xC0);delay(100);
     // ADS1299::WREG(CH1SET, 0x01);delay(100);
@@ -125,7 +124,7 @@ void GEENIE::reset(){
     }
 
     setSRB1(use_SRB1());  //set whether SRB1 is active or not
-    setAutoBiasGeneration(true); //configure ADS1299 so that bias is generated based on channel state
+    // setAutoBiasGeneration(true); //configure ADS1299 so that bias is generated based on channel state
 }
 
 //deactivate the given channel...note: stops data colleciton to issue its commands
@@ -138,25 +137,24 @@ void GEENIE::deactivateChannel(int N)
   //check the inputs
   if ((N < 1) || (N > CHANNELS_PER_BOARD)) return;
   
-  if (N>CHANNELS_PER_ADC) {
-    ads_2->SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
-    int N_zeroRef = constrain(N-1,0,CHANNELS_PER_BOARD-1);  //subtracts 1 so that we're counting from 0, not 1
+  ADS1299::SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
+  int N_zeroRef = constrain(N-1,0,CHANNELS_PER_BOARD-1);  //subtracts 1 so that we're counting from 0, not 1
+  if (N_zeroRef>=CHANNELS_PER_ADC) {
+    N_zeroRef = N_zeroRef - 4;
     reg = CH1SET+(byte)N_zeroRef;
-    config = ads_2->RREG(reg); delay(1);
+    config = ADS1299::RREG_2(reg); delay(1);
     bitSet(config,7);  //left-most bit (bit 7) = 1, so this shuts down the channel
     if (use_neg_inputs) bitClear(config,3);  //bit 3 = 0 disconnects SRB2
-    ads_2->WREG(reg,config); delay(1);
+    ADS1299::WREG_2(reg,config); delay(1);
   } else {
-    ads_1->SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS   
-    int N_zeroRef = constrain(N-1,0,CHANNELS_PER_BOARD-1);  //subtracts 1 so that we're counting from 0, not 1
     reg = CH1SET+(byte)N_zeroRef;
-    config = ads_1->RREG(reg); delay(1);
+    config = ADS1299::RREG_1(reg); delay(1);
     bitSet(config,7);  //left-most bit (bit 7) = 1, so this shuts down the channel
     if (use_neg_inputs) bitClear(config,3);  //bit 3 = 0 disconnects SRB2
-    ads_1->WREG(reg,config); delay(1);
+    ADS1299::WREG_1(reg,config); delay(1);
   } 
   //set how this channel affects the bias generation...
-  alterBiasBasedOnChannelState(N);
+  // alterBiasBasedOnChannelState(N);
 }; 
 
 //Active a channel in single-ended mode  
@@ -165,14 +163,13 @@ void GEENIE::deactivateChannel(int N)
 //  inputCode is defined in the macros in the header file
 void GEENIE::activateChannel(int N,byte gainCode,byte inputCode) 
 {
-  byte reg, config;
+  // byte reg, config;
 	
    //check the inputs
   if ((N < 1) || (N > CHANNELS_PER_BOARD)) return;
   
   //proceed...first, disable any data collection
-  ads_1->SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
-  ads_2->SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
+  ADS1299::SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
   //active the channel using the given gain.  Set MUX for normal operation
   //see ADS1299 datasheet, PDF p44
   N = constrain(N-1,0,CHANNELS_PER_BOARD-1);  //shift down by one
@@ -183,29 +180,25 @@ void GEENIE::activateChannel(int N,byte gainCode,byte inputCode)
   configByte = configByte | inputCode; //bitwise OR to set just the gain bits high or low and leave the rest alone
   if (use_SRB2[N]) configByte |= 0b00001000;  //set the SRB2 flag...p44 in the data sheet
   Serial.println(configByte, HEX);
-  ads_1->WREG(CH1SET+(byte)N,configByte); delay(1);
-  ads_2->WREG(CH1SET+(byte)N,configByte); delay(1);
-
+  if (N>=CHANNELS_PER_ADC) {
+    N = N-4;
+    ADS1299::WREG_2(CH1SET+(byte)N,configByte); delay(1);
+    // alterBiasBasedOnChannelState(N);
+  } else {
+    ADS1299::WREG_1(CH1SET+(byte)N,configByte); delay(1);
+    // alterBiasBasedOnChannelState(N);
+  }
   //add this channel to the bias generation
-  alterBiasBasedOnChannelState(N);
-  
-  // // Now, these actions are necessary whenever there is at least one active channel
-  // // though they don't strictly need to be done EVERY time we activate a channel.
-  // // just once after the reset.
   
   // activate SRB1 as the Negative input for all channels, if needed
   setSRB1(use_SRB1());
-
-  //Finalize the bias setup...activate buffer and use internal reference for center of bias creation, datasheet PDF p42
-  ads_1->WREG(CONFIG3,0b11101100); delay(1);
-  ads_2->WREG(CONFIG3,0b11101100); delay(1);  
 };
 
 //note that N here one-referenced (ie [1...N]), not [0...N-1]
 void GEENIE::alterBiasBasedOnChannelState(int N_oneRef) {
-	 int N_zeroRef = constrain(N_oneRef-1,0,CHANNELS_PER_BOARD-1);  //subtracts 1 so that we're counting from 0, not 1
+	//  int N_zeroRef = constrain(N_oneRef-1,0,CHANNELS_PER_BOARD-1);  //subtracts 1 so that we're counting from 0, not 1
 	
-	 boolean activateBias = false;
+	//  boolean activateBias = false;
 	 if ((use_channels_for_bias==true) && (isChannelActive(N_oneRef))) {
 	 	 //activate this channel's bias
 	 	 activateBiasForChannel(N_oneRef);
@@ -217,11 +210,18 @@ void GEENIE::alterBiasBasedOnChannelState(int N_oneRef) {
 //note that N here one-referenced (ie [1...N]), not [0...N-1]
 boolean GEENIE::isChannelActive(int N_oneRef) {
 	 int N_zeroRef = constrain(N_oneRef-1,0,CHANNELS_PER_BOARD-1);  //subtracts 1 so that we're counting from 0, not 1
-	 
 	 //get whether channel is active or not
-	 byte reg = CH1SET+(byte)N_zeroRef;
-	 byte config = ads_1->RREG(reg); delay(1);
-	 boolean chanState = bitRead(config,7);
+  boolean chanState;
+  if (N_zeroRef>=CHANNELS_PER_ADC) {
+    N_zeroRef = N_zeroRef-4;
+    byte reg = CH1SET+(byte)N_zeroRef;
+    byte config = ADS1299::RREG_2(reg); delay(1);
+    chanState = bitRead(config,7);
+  } else {
+    byte reg = CH1SET+(byte)N_zeroRef;
+    byte config = ADS1299::RREG_1(reg); delay(1);
+    chanState = bitRead(config,7);
+  }
 	 return chanState;
 }
 
@@ -238,9 +238,16 @@ void GEENIE::deactivateBiasForChannel(int N_oneRef) {
 		} else {
 			reg = BIAS_SENSN;
 		}
-		config = ADS1299::RREG(reg); delay(1);//get the current bias settings
-		bitClear(config,N_zeroRef);          //clear this channel's bit to remove from bias generation
-		ADS1299::WREG(reg,config); delay(1);  //send the modified byte back to the ADS
+    if (N_zeroRef>=CHANNELS_PER_ADC) {
+      N_zeroRef = N_zeroRef-4;
+      config = ADS1299::RREG_2(reg); delay(1);//get the current bias settings
+      bitClear(config,N_zeroRef);          //clear this channel's bit to remove from bias generation
+      ADS1299::WREG_2(reg,config); delay(1);  //send the modified byte back to the ADS
+    } else {
+      config = ADS1299::RREG_1(reg); delay(1);//get the current bias settings
+      bitClear(config,N_zeroRef);          //clear this channel's bit to remove from bias generation
+      ADS1299::WREG_1(reg,config); delay(1);  //send the modified byte back to the ADS
+    }
 	}
 }
 void GEENIE::activateBiasForChannel(int N_oneRef) {
@@ -254,9 +261,17 @@ void GEENIE::activateBiasForChannel(int N_oneRef) {
 	for (int i=0; i < nLoop; i++) {
 		reg = BIAS_SENSP;
 		if (i > 0) reg = BIAS_SENSN;
-		config = ADS1299::RREG(reg); //get the current bias settings
-		bitSet(config,N_zeroRef);                   //set this channel's bit
-		ADS1299::WREG(reg,config); delay(1);  //send the modified byte back to the ADS
+    if (N_zeroRef>=CHANNELS_PER_ADC) {
+      N_zeroRef = N_zeroRef-4;
+      config = ADS1299::RREG_2(reg); //get the current bias settings
+      bitSet(config,N_zeroRef);                   //set this channel's bit
+      ADS1299::WREG_2(reg,config); delay(1);  //send the modified byte back to the ADS
+    } else {
+      config = ADS1299::RREG_1(reg); //get the current bias settings
+      bitSet(config,N_zeroRef);                   //set this channel's bit
+      ADS1299::WREG_1(reg,config); delay(1);  //send the modified byte back to the ADS  
+    }
+
 	}
 }	
 
@@ -275,35 +290,57 @@ void GEENIE::changeChannelLeadOffDetection(int N, int code_OFF_ON, int code_P_N_
   ADS1299::SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
 
   if ((code_P_N_Both == PCHAN) || (code_P_N_Both == BOTHCHAN)) {
-  	  //shut down the lead-off signal on the positive side
+      //shut down the lead-off signal on the positive side
   	  reg = LOFF_SENSP;  //are we using the P inptus or the N inputs?
-  	  config = ADS1299::RREG(reg); //get the current lead-off settings
-  	  if (code_OFF_ON == OFF) {
-  	  	  bitClear(config,N);                   //clear this channel's bit
-  	  } else {
-  	  	  bitSet(config,N); 			  //clear this channel's bit
-  	  }
-  	  ADS1299::WREG(reg,config); delay(1);  //send the modified byte back to the ADS
+      if (N>=CHANNELS_PER_ADC) {
+        N = N-4;
+        config = ADS1299::RREG_2(reg); //get the current lead-off settings
+        if (code_OFF_ON == OFF) {
+            bitClear(config,N);                   //clear this channel's bit
+        } else {
+            bitSet(config,N); 			  //clear this channel's bit
+        }
+        ADS1299::WREG_2(reg,config); delay(1);  //send the modified byte back to the ADS
+      } else {
+        config = ADS1299::RREG_1(reg); //get the current lead-off settings
+        if (code_OFF_ON == OFF) {
+            bitClear(config,N);                   //clear this channel's bit
+        } else {
+            bitSet(config,N); 			  //clear this channel's bit
+        }
+        ADS1299::WREG_1(reg,config); delay(1);  //send the modified byte back to the ADS
+      }
   }
   
   if ((code_P_N_Both == NCHAN) || (code_P_N_Both == BOTHCHAN)) {
   	  //shut down the lead-off signal on the negative side
   	  reg = LOFF_SENSN;  //are we using the P inptus or the N inputs?
-  	  config = ADS1299::RREG(reg); //get the current lead-off settings
-  	  if (code_OFF_ON == OFF) {
-  	  	  bitClear(config,N);                   //clear this channel's bit
-  	  } else {
-  	  	  bitSet(config,N); 			  //clear this channel's bit
-  	  }           //set this channel's bit
-  	  ADS1299::WREG(reg,config); delay(1);  //send the modified byte back to the ADS
+      if (N>=CHANNELS_PER_ADC) {
+        N = N-4;
+        config = ADS1299::RREG_2(reg); //get the current lead-off settings
+        if (code_OFF_ON == OFF) {
+            bitClear(config,N);                   //clear this channel's bit
+        } else {
+            bitSet(config,N); 			  //clear this channel's bit
+        }           //set this channel's bit
+        ADS1299::WREG_2(reg,config); delay(1);  //send the modified byte back to the ADS
+      } else {
+        config = ADS1299::RREG_1(reg); //get the current lead-off settings
+        if (code_OFF_ON == OFF) {
+            bitClear(config,N);                   //clear this channel's bit
+        } else {
+            bitSet(config,N); 			  //clear this channel's bit
+        }           //set this channel's bit
+        ADS1299::WREG_1(reg,config); delay(1);  //send the modified byte back to the ADS
+      }
   }
 }; 
 
 void GEENIE::setSRB1(boolean desired_state) {
 	if (desired_state) {
-		ADS1299::WREG(MISC1,0b00100000); delay(1);  //ADS1299 datasheet, PDF p46
+		ADS1299::WREG_BOTH(MISC1,0b00100000); delay(1);  //ADS1299 datasheet, PDF p46
 	} else {
-		ADS1299::WREG(MISC1,0b00000000); delay(1);  //ADS1299 datasheet, PDF p46
+		ADS1299::WREG_BOTH(MISC1,0b00000000); delay(1);  //ADS1299 datasheet, PDF p46
 	}
 }
 
@@ -327,8 +364,12 @@ boolean GEENIE::use_SRB1(void) {
 }
 
 
-byte GEENIE::read_ads(){
-    return ADS1299::getDeviceID();
+byte GEENIE::read_ads_1(){
+    return ADS1299::getDeviceID_1();
+}
+
+byte GEENIE::read_ads_2(){
+    return ADS1299::getDeviceID_2();
 }
 
  
@@ -351,20 +392,31 @@ void GEENIE::stop()
 //Query to see if data is available from the ADS1299...return TRUE is data is available
 int GEENIE::isDataAvailable(void)
 {
-  return (!(digitalRead(ADS_DRDY)));
+  return (!(digitalRead(DRDY_ADS_1)));
 }
 
 //Configure the test signals that can be inernally generated by the ADS1299
 void GEENIE::configureInternalTestSignal(byte amplitudeCode, byte freqCode)
 {
-	if (amplitudeCode == ADSTESTSIG_NOCHANGE) amplitudeCode = (ADS1299::RREG(CONFIG2) & (0b00000100));
-	if (freqCode == ADSTESTSIG_NOCHANGE) freqCode = (ADS1299::RREG(CONFIG2) & (0b00000011));
-	freqCode &= 0b00000011;  //only the last two bits should be used
-	amplitudeCode &= 0b00000100;  //only this bit should be used
-	byte message = 0b11010000 | freqCode | amplitudeCode;  //compose the code
+  byte _amplitudeCode = amplitudeCode;
+  byte _freqCode = freqCode;
+	if (_amplitudeCode == ADSTESTSIG_NOCHANGE) _amplitudeCode = (ADS1299::RREG_1(CONFIG2) & (0b00000100));
+	if (_freqCode == ADSTESTSIG_NOCHANGE) _freqCode = (ADS1299::RREG_1(CONFIG2) & (0b00000011));
+	_freqCode &= 0b00000011;  //only the last two bits should be used
+	_amplitudeCode &= 0b00000100;  //only this bit should be used
+	byte message = 0b11010000 | _freqCode | _amplitudeCode;  //compose the code
+	ADS1299::WREG_1(CONFIG2,message); delay(1);
 	
-	ADS1299::WREG(CONFIG2,message); delay(1);
-	
+  _amplitudeCode = amplitudeCode;
+  _freqCode = freqCode;
+	if (_amplitudeCode == ADSTESTSIG_NOCHANGE) _amplitudeCode = (ADS1299::RREG_2(CONFIG2) & (0b00000100));
+	if (_freqCode == ADSTESTSIG_NOCHANGE) _freqCode = (ADS1299::RREG_2(CONFIG2) & (0b00000011));
+	_freqCode &= 0b00000011;  //only the last two bits should be used
+	_amplitudeCode &= 0b00000100;  //only this bit should be used
+	message = 0b11010000 | _freqCode | _amplitudeCode;  //compose the code
+	ADS1299::WREG_2(CONFIG2,message); delay(1);
+
+
        //ADS1299::WREG(CONFIG2,0b11010000);delay(1);   //set internal test signal, default amplitude, default speed, datasheet PDF Page 41
       //ADS1299::WREG(CONFIG2,0b11010001);delay(1);   //set internal test signal, default amplitude, 2x speed, datasheet PDF Page 41
       //ADS1299::WREG(CONFIG2,0b11010101);delay(1);   //set internal test signal, 2x amplitude, 2x speed, datasheet PDF Page 41
@@ -374,22 +426,41 @@ void GEENIE::configureInternalTestSignal(byte amplitudeCode, byte freqCode)
 
 void GEENIE::configureLeadOffDetection(byte amplitudeCode, byte freqCode)
 {
-	amplitudeCode &= 0b00001100;  //only these two bits should be used
-	freqCode &= 0b00000011;  //only these two bits should be used
+  byte _amplitudeCode = amplitudeCode;
+  byte _freqCode = freqCode;
+	_amplitudeCode &= 0b00001100;  //only these two bits should be used
+	_freqCode &= 0b00000011;  //only these two bits should be used
 	
 	//get the current configuration of he byte
 	byte reg, config;
 	reg = LOFF;
-	config = ADS1299::RREG(reg); //get the current bias settings
+	config = ADS1299::RREG_1(reg); //get the current bias settings
 	
 	//reconfigure the byte to get what we want
 	config &= 0b11110000;  //clear out the last four bits
-	config |= amplitudeCode;  //set the amplitude
-	config |= freqCode;    //set the frequency
+	config |= _amplitudeCode;  //set the amplitude
+	config |= _freqCode;    //set the frequency
 	
 	//send the config byte back to the hardware
-	ADS1299::WREG(reg,config); delay(1);  //send the modified byte back to the ADS
+	ADS1299::WREG_1(reg,config); delay(1);  //send the modified byte back to the ADS
 	
+
+  _amplitudeCode = amplitudeCode;
+  _freqCode = freqCode;
+	_amplitudeCode &= 0b00001100;  //only these two bits should be used
+	_freqCode &= 0b00000011;  //only these two bits should be used
+	
+	//get the current configuration of he byte
+	reg = LOFF;
+	config = ADS1299::RREG_2(reg); //get the current bias settings
+	
+	//reconfigure the byte to get what we want
+	config &= 0b11110000;  //clear out the last four bits
+	config |= _amplitudeCode;  //set the amplitude
+	config |= _freqCode;    //set the frequency
+	
+	//send the config byte back to the hardware
+	ADS1299::WREG_2(reg,config); delay(1);  //send the modified byte back to the ADS
 }
 
 //set which version of OpenBCI we're using.  This affects whether we use the 
@@ -398,7 +469,6 @@ void GEENIE::configureLeadOffDetection(byte amplitudeCode, byte freqCode)
 //flipped or not.
 void GEENIE::setSRB()
 {
-
     //set whether to use positive or negative inputs
     use_neg_inputs = false;
 
@@ -407,8 +477,7 @@ void GEENIE::setSRB()
         use_SRB2[i] = false;
     }
 
-    ADS1299::WREG(LOFF_FLIP,0b00000000);delay(1);  //set all channels to zero
-  
+    ADS1299::WREG_BOTH(LOFF_FLIP,0b00000000);delay(1);  //set all channels to zero
 }
 
 //print out the state of all the control registers
@@ -417,9 +486,15 @@ void GEENIE::printAllRegisters(void)
 	boolean prevVerboseState = verbose;
 	
         verbose = true;
-        ADS1299::RREGS(0x00,0x10);     // write the first registers
+        ADS1299::RREGS_1(0x00,0x10);
         delay(100);  //stall to let all that data get read by the PC
-        ADS1299::RREGS(0x11,0x17-0x11);     // write the rest
+        ADS1299::RREGS_1(0x11,0x17-0x11);
+
+        delay(100); 
+
+        ADS1299::RREGS_2(0x00,0x10);
+        delay(100);  //stall to let all that data get read by the PC
+        ADS1299::RREGS_2(0x11,0x17-0x11);
         verbose = prevVerboseState;
 }
 

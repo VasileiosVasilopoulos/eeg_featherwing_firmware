@@ -3,14 +3,14 @@
 
 
 // BOARD PINOUTS
-#define BTN_1 A0
+#define BTN_1 26
 #define BTN_2 25
 #define BTN_3 34
 #define BTN_4 39
 
-#define DRDY_ADS_1 36
+#define DRDY_ADS_1 27
 #define DRDY_ADS_2 36
-#define CS_ADS_1 4
+#define CS_ADS_1 12
 #define CS_ADS_2 4
 #define CS_SD 33
 
@@ -124,6 +124,7 @@
 #define BOP 'A' // Begining of stream packet
 
 #define NUMBER_BYTES_PER_ADS_SAMPLE 24
+#define NUMBER_CHANNELS_PER_ADS_SAMPLE 24
 
 #define PCKT_START 0xA0	// prefix for data packet error checking
 #define PCKT_END 0xC0	// postfix for data packet error checking
