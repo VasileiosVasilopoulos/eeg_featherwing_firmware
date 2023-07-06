@@ -58,6 +58,9 @@ public:
     byte regData_2 [24];	// array is used to mirror register data
     byte boardChannelDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];    // array to hold raw channel data
     int boardChannelDataInt[NUMBER_CHANNELS_PER_ADS_SAMPLE];    // array used when reading channel data as ints
+    int meanBoardChannelDataInt[NUMBER_CHANNELS_PER_ADS_SAMPLE];
+    int lastBoardChannelDataInt[NUMBER_CHANNELS_PER_ADS_SAMPLE];
+
     byte daisyChannelDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];
     byte lastBoardDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];
     byte lastDaisyDataRaw[NUMBER_BYTES_PER_ADS_SAMPLE];
@@ -66,6 +69,7 @@ public:
     byte sampleCounter;
     byte sampleCounterBLE;
 
+    boolean firstDataPacket;
     // long channelData [16];	// array used when reading channel data board 1+2
     boolean verbose;		// turn on/off Serial feedback
     

@@ -8,7 +8,7 @@
 
 void ADS1299::initialize(int _CS_1 ,int _DRDY_1, int _CS_2, int _DRDY_2, boolean _verbose){ 
 	verbose = _verbose;
-
+    firstDataPacket = true;
     n_chan_all_boards = CHANNELS_PER_BOARD;
 
     // WREG(CONFIG1,0b11101100); delay(1);
@@ -481,6 +481,13 @@ void ADS1299::updateChannelData_1(){
 	byte inByte;
     int bytecounter = 0;
 
+    if (!firstDataPacket) {
+        for (int i = 0; i < CHANNELS_PER_ADC; i++){                  // shift and average the byte arrays
+            lastBoardChannelDataInt[i] = boardChannelDataInt[i]; // remember the last samples
+        }
+    }
+
+
     // vspi->beginTransaction(SPISettings(SPI_SPEED, SPI_BYTEORDER, SPI_MODE));
 	digitalWrite(CS_1, LOW);				//  open SPI
 	// READ CHANNEL DATA FROM FIRST ADS IN DAISY LINE
@@ -497,12 +504,50 @@ void ADS1299::updateChannelData_1(){
 		}
 	}
 	digitalWrite(CS_1, HIGH);				//  close SPI
+
+      // need to convert 24bit to 32bit if using the filter
+    for (int i = 0; i < CHANNELS_PER_ADC; i++)
+    { // convert 3 byte 2's compliment to 4 byte 2's compliment
+        if (bitRead(boardChannelDataInt[i], 23) == 1)
+        {
+        boardChannelDataInt[i] |= 0xFF000000;
+        }
+        else
+        {
+        boardChannelDataInt[i] &= 0x00FFFFFF;
+        }
+    }
+
+    if (!firstDataPacket) {
+        bytecounter = 0;
+        for (int i = 0; i < CHANNELS_PER_ADC; i++) { // take the average of this and the last sample
+            meanBoardChannelDataInt[i] = (lastBoardChannelDataInt[i] + boardChannelDataInt[i]) / 2;
+        }
+        for (int i = 0; i < CHANNELS_PER_BOARD; i++)
+        { // place the average values in the meanRaw array
+            for (int b = 2; b >= 0; b--) {
+                meanBoardDataRaw[bytecounter] = (meanBoardChannelDataInt[i] >> (b * 8)) & 0xFF;
+                bytecounter++;
+            }
+        }
+    }
+
+    if (firstDataPacket == true) {
+        firstDataPacket = false;
+    }
 }
 
 void ADS1299::updateChannelData_2(){
     channelDataAvailable_2 = false;
     lastSampleTime = millis();
     // Serial.println(millis());
+
+    if (!firstDataPacket) {
+	for(int i = 4; i<4+CHANNELS_PER_ADC; i++){                 // shift and average the byte arrays
+            lastBoardChannelDataInt[i] = boardChannelDataInt[i]; // remember the last samples
+        }
+    }
+
 
 	byte inByte;
     int bytecounter = 12;
@@ -522,6 +567,36 @@ void ADS1299::updateChannelData_2(){
 		}
 	}
     digitalWrite(CS_2, HIGH);				//  close SPI
+
+      // need to convert 24bit to 32bit if using the filter
+	for(int i = 4; i<4+CHANNELS_PER_ADC; i++){
+        if (bitRead(boardChannelDataInt[i], 23) == 1)
+        {
+        boardChannelDataInt[i] |= 0xFF000000;
+        }
+        else
+        {
+        boardChannelDataInt[i] &= 0x00FFFFFF;
+        }
+    }
+
+    if (!firstDataPacket) {
+        bytecounter = 0;
+	for(int i = 4; i<4+CHANNELS_PER_ADC; i++){
+            meanBoardChannelDataInt[i] = (lastBoardChannelDataInt[i] + boardChannelDataInt[i]) / 2;
+        }
+        for (int i = 0; i < CHANNELS_PER_BOARD; i++)
+        { // place the average values in the meanRaw array
+            for (int b = 2; b >= 0; b--) {
+                meanBoardDataRaw[bytecounter] = (meanBoardChannelDataInt[i] >> (b * 8)) & 0xFF;
+                bytecounter++;
+            }
+        }
+    }
+
+    if (firstDataPacket == true) {
+        firstDataPacket = false;
+    }
 }
 
 

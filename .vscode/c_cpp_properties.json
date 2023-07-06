@@ -205,7 +205,7 @@
                 ]
             },
             "defines": [
-                "PLATFORMIO=60107",
+                "PLATFORMIO=60108",
                 "ARDUINO_FEATHER_ESP32",
                 "ESP32",
                 "ESP_PLATFORM",
@@ -218,8 +218,8 @@
                 "ARDUINO_BOARD=\"Adafruit ESP32 Feather\"",
                 ""
             ],
-            "cStandard": "c99",
-            "cppStandard": "c++11",
+            "cStandard": "gnu99",
+            "cppStandard": "gnu++11",
             "compilerPath": "C:/Users/Vasilis/.platformio/packages/toolchain-xtensa32/bin/xtensa-esp32-elf-gcc.exe",
             "compilerArgs": [
                 "-mlongcalls",

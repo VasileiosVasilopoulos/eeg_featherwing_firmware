@@ -560,7 +560,7 @@ void GEENIE::ADS_writeChannelDataAvgDaisy()
   {
     for (int i = 0; i < 24; i++)
     {
-      writeSerial(boardChannelDataRaw[i]);
+      writeSerial(meanBoardDataRaw[i]);
     }
   }
 }
