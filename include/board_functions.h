@@ -17,6 +17,8 @@ class GEENIE: public ADS1299 {
         };
 
         void initialize();
+        void initialize_bluetooth();
+        // void callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
         void set_buttons();
         byte read_ads_1();
         byte read_ads_2();
@@ -41,10 +43,12 @@ class GEENIE: public ADS1299 {
         void btn_2_isr();
         void btn_3_isr();
         void btn_4_isr();
-
+        
         void sendChannelDataSerial(PACKET_TYPE packetType);
+        void sendChannelDataSerialBt(PACKET_TYPE packetType);
         void writeSerial(uint8_t);
         void ADS_writeChannelData(void);
+        void ADS_writeChannelDataBt(void);
         void ADS_writeChannelDataAvgDaisy(void);
 
         void writeAuxDataSerial(void);
@@ -61,6 +65,7 @@ class GEENIE: public ADS1299 {
         boolean use_channels_for_bias;
         boolean use_SRB1(void);
         int n_chan_all_boards;
+        boolean bt_connected;
         // boolean isMultiCharCmd;  // A multi char command is in progress
 };
 

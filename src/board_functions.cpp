@@ -3,6 +3,15 @@
 #include <Arduino.h>
 #include <ads1299.h>
 #include <FunctionalInterrupt.h>
+#include "BluetoothSerial.h"
+
+#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
+#error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
+#endif
+
+BluetoothSerial SerialBT;
+// const char *pin = "1234"; // Change this to more secure PIN.
+String device_name = "Geenie";
 
 // BUTTON INTERRUPTS
 
@@ -66,6 +75,7 @@ void GEENIE::set_buttons(){
 
 void GEENIE::initialize(){
     // Serial.begin(SERIAL_BAUDRATE);
+    bt_connected = false;
     
     ADS1299::initialize(CS_ADS_1, DRDY_ADS_1, CS_ADS_2, DRDY_ADS_2, true);
     delay(100);
@@ -93,6 +103,32 @@ void GEENIE::initialize(){
     //set default state for lead off detection
     // configureLeadOffDetection(LOFF_MAG_6NA,LOFF_FREQ_31p2HZ);
 }
+
+void callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param){
+  if(event == ESP_SPP_SRV_OPEN_EVT){
+    Serial.println("Client Connected");
+  }
+}
+
+// void GEENIE::callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param){
+// // Callback function implementation
+//     bt_connected = true;
+// }
+
+void GEENIE::initialize_bluetooth(){
+    SerialBT.register_callback(callback);
+
+    bt_connected = true;
+    if(!SerialBT.begin(device_name)){
+      Serial.println("An error occurred initializing Bluetooth");
+    }else{
+      Serial.println("Bluetooth initialized");
+    }
+    // SerialBT.setPin(pin);
+    Serial.println("Bluetooth Started! Ready to pair...");
+}
+
+
 
 void GEENIE::reset(){
     ADS1299::RESET();             // send RESET command to default all registers
@@ -541,6 +577,23 @@ void GEENIE::sendChannelDataSerial(PACKET_TYPE packetType)
   sampleCounter += 1;
 }
 
+void GEENIE::sendChannelDataSerialBt(PACKET_TYPE packetType)
+{
+  if (bt_connected){
+    SerialBT.write(BOP);   // 1 byte - 0x41
+    SerialBT.write(sampleCounter); // 1 byte
+    ADS_writeChannelDataBt();     // 24 bytes
+    // Write  Timestamp
+      // serialize the number, placing the MSB in lower packets
+    for (int j = 3; j >= 0; j--)
+    {
+      SerialBT.write((uint8_t)(lastSampleTime >> (j * 8)));
+    }
+    SerialBT.write((uint8_t)(PCKT_END | packetType)); // 1 byte
+    sampleCounter += 1;
+  }
+}
+
 void GEENIE::writeSerial(uint8_t c)
 {
   if (Serial)
@@ -553,6 +606,15 @@ void GEENIE::ADS_writeChannelData()
 {
   ADS_writeChannelDataAvgDaisy();
 }
+
+void GEENIE::ADS_writeChannelDataBt()
+{
+  for (int i = 0; i < 24; i++)
+  {
+    SerialBT.write(meanBoardDataRaw[i]);
+  }
+}
+
 
 void GEENIE::ADS_writeChannelDataAvgDaisy()
 {
