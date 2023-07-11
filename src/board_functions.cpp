@@ -546,32 +546,6 @@ void GEENIE::sendChannelDataSerial(PACKET_TYPE packetType)
   {
     writeSerial((uint8_t)(lastSampleTime >> (j * 8)));
   }
-
-  // switch (packetType)
-  // {
-  // case PACKET_TYPE_ACCEL:
-  //   accelWriteAxisDataSerial(); // 6 bytes
-  //   break;
-  // case PACKET_TYPE_ACCEL_TIME_SET:
-  //   sendTimeWithAccelSerial();
-  //   curPacketType = PACKET_TYPE_ACCEL_TIME_SYNC;
-  //   break;
-  // case PACKET_TYPE_ACCEL_TIME_SYNC:
-  //   sendTimeWithAccelSerial();
-  //   break;
-  // case PACKET_TYPE_RAW_AUX_TIME_SET:
-  //   sendTimeWithRawAuxSerial();
-  //   curPacketType = PACKET_TYPE_RAW_AUX_TIME_SYNC;
-  //   break;
-  // case PACKET_TYPE_RAW_AUX_TIME_SYNC:
-  //   sendTimeWithRawAuxSerial();
-  //   break;
-  // case PACKET_TYPE_RAW_AUX:
-  // default:
-  //   writeAuxDataSerial(); // 6 bytes
-  //   break;
-  // }
-  // writeAuxDataSerial();
   writeSerial((uint8_t)(PCKT_END | packetType)); // 1 byte
 
   sampleCounter += 1;
@@ -635,6 +609,95 @@ void GEENIE::writeAuxDataSerial(void)
     writeSerial((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
   }
 }
+
+void GEENIE::checkForCommands(void){
+  if (SerialBT.available()) {                                                             // BT: Checks if there are data from the bluetooth available
+    int ret = SerialBT.read();
+    switch (ret)
+      {
+      case GEENIE_START:
+        start();
+        Serial.write("GEENIE_START\n");
+        break;
+      case GEENIE_STOP:
+        stop();
+        Serial.write("GEENIE_STOP\n");
+        break;
+      case GEENIE_START_SD:
+        Serial.write("GEENIE_START_SD\n");
+        break;
+      case GEENIE_STOP_SD:
+        Serial.write("GEENIE_STOP_SD\n");
+        break;
+      case GEENIE_CHANNEL_ON_1:
+        activateChannel(1, ADS_GAIN24, ADSINPUT_NORMAL);
+        Serial.write("GEENIE_CHANNEL_ON_1\n");
+        break;
+      case GEENIE_CHANNEL_ON_2:
+        activateChannel(2, ADS_GAIN24, ADSINPUT_NORMAL);
+        Serial.write("GEENIE_CHANNEL_ON_2\n");
+        break;
+      case GEENIE_CHANNEL_ON_3:
+        activateChannel(3, ADS_GAIN24, ADSINPUT_NORMAL);
+        Serial.write("GEENIE_CHANNEL_ON_3\n");
+        break;
+      case GEENIE_CHANNEL_ON_4:
+        activateChannel(4, ADS_GAIN24, ADSINPUT_NORMAL);
+        Serial.write("GEENIE_CHANNEL_ON_4\n");
+        break;
+      case GEENIE_CHANNEL_ON_5:
+        activateChannel(5, ADS_GAIN24, ADSINPUT_NORMAL);
+        Serial.write("GEENIE_CHANNEL_ON_5\n");
+        break;
+      case GEENIE_CHANNEL_ON_6:
+        activateChannel(6, ADS_GAIN24, ADSINPUT_NORMAL);
+        Serial.write("GEENIE_CHANNEL_ON_6\n");
+        break;
+      case GEENIE_CHANNEL_ON_7:
+        activateChannel(7, ADS_GAIN24, ADSINPUT_NORMAL);
+        Serial.write("GEENIE_CHANNEL_ON_7\n");
+        break;
+      case GEENIE_CHANNEL_ON_8:
+        activateChannel(8, ADS_GAIN24, ADSINPUT_NORMAL);
+        Serial.write("GEENIE_CHANNEL_ON_8\n");
+        break;
+      case GEENIE_CHANNEL_OFF_1:
+        deactivateChannel(1);
+        Serial.write("GEENIE_CHANNEL_OFF_1\n");
+        break;
+      case GEENIE_CHANNEL_OFF_2:
+        deactivateChannel(2);
+        Serial.write("GEENIE_CHANNEL_OFF_2\n");
+        break;
+      case GEENIE_CHANNEL_OFF_3:
+        deactivateChannel(3);
+        Serial.write("GEENIE_CHANNEL_OFF_3\n");
+        break;
+      case GEENIE_CHANNEL_OFF_4:
+        deactivateChannel(4);
+        Serial.write("GEENIE_CHANNEL_OFF_4\n");
+        break;
+      case GEENIE_CHANNEL_OFF_5:
+        deactivateChannel(5);
+        Serial.write("GEENIE_CHANNEL_OFF_5\n");
+        break;
+      case GEENIE_CHANNEL_OFF_6:
+        deactivateChannel(6);
+        Serial.write("GEENIE_CHANNEL_OFF_6\n");
+        break;
+      case GEENIE_CHANNEL_OFF_7:
+        deactivateChannel(7);
+        Serial.write("GEENIE_CHANNEL_OFF_7\n");
+        break;
+      case GEENIE_CHANNEL_OFF_8:
+        deactivateChannel(8);
+        Serial.write("GEENIE_CHANNEL_OFF_8\n");
+        break;
+      default:
+        break;
+      }
+    }
+  }
 
 /**
 * @description Called in every `loop()` and checks `Serial0`

@@ -53,6 +53,7 @@ class GEENIE: public ADS1299 {
 
         void writeAuxDataSerial(void);
         boolean hasDataSerial(void);
+        void checkForCommands(void);
         char getCharSerial(void);
         // void loop(void);
         // boolean processChar(char);

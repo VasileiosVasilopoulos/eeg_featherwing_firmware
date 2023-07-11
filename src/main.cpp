@@ -65,4 +65,5 @@ void loop() {
       temp = false;
     }
   }
+  Geenie.checkForCommands();
 }
