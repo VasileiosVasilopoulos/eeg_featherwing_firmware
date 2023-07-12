@@ -27,12 +27,18 @@ void setup() {
   Geenie.activateChannel(6, ADS_GAIN24, ADSINPUT_NORMAL);
   Geenie.activateChannel(7, ADS_GAIN24, ADSINPUT_NORMAL);
   Geenie.activateChannel(8, ADS_GAIN24, ADSINPUT_NORMAL);
-  
-  delay(1000);
+  Serial.println("___________________ADC Initialized__________________________");
+  delay(400);
 
   Geenie.initialize_bluetooth();
+  Serial.println("___________________Bluetooth Initialized__________________________");
 
-  delay(15000);
+  delay(400);
+
+  Geenie.initialize_oled();
+  Serial.println("___________________Oled Initialized__________________________");
+
+  delay(5000);
   // Serial.println("___________________CHIP 1 REGISTERS__________________________");
   // Geenie.RREGS_1(0x00,0x17);     // read all registers starting at ID and ending at CONFIG4
   // Serial.println("___________________CHIP 2 REGISTERS__________________________");
@@ -64,6 +70,8 @@ void loop() {
       Geenie.sendChannelDataSerialBt(Geenie.PACKET_TYPE_ACCEL);
       temp = false;
     }
+
+    Geenie.displayBattery();
   }
   Geenie.checkForCommands();
 }

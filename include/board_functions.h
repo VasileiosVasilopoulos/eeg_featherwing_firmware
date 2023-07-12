@@ -3,6 +3,13 @@
 #include <ads1299.h>
 
 
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+
+
 class GEENIE: public ADS1299 {
     public:
 
@@ -18,6 +25,8 @@ class GEENIE: public ADS1299 {
 
         void initialize();
         void initialize_bluetooth();
+        void initialize_oled();
+        void initializeBatteryMonitor();
         // void callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
         void set_buttons();
         byte read_ads_1();
@@ -55,6 +64,8 @@ class GEENIE: public ADS1299 {
         boolean hasDataSerial(void);
         void checkForCommands(void);
         char getCharSerial(void);
+        float getBatteryLevel(void);
+        void displayBattery(void);
         // void loop(void);
         // boolean processChar(char);
 
@@ -67,6 +78,7 @@ class GEENIE: public ADS1299 {
         boolean use_SRB1(void);
         int n_chan_all_boards;
         boolean bt_connected;
+
         // boolean isMultiCharCmd;  // A multi char command is in progress
 };
 

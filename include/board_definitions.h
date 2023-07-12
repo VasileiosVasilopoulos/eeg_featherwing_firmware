@@ -1,6 +1,7 @@
 #ifndef _____BOARD_DEFINITIONS_H
 #define _____BOARD_DEFINITIONS_H
 
+#define VBATPIN A13
 
 // BOARD PINOUTS
 #define BTN_1 26
@@ -18,9 +19,9 @@
 #define DIN 18
 #define DOUT 19
 
-#define SCRN_BTN_A 15
-#define SCRN_BTN_B 32
-#define SCRN_BTN_C 14
+// #define SCRN_BTN_A 15
+// #define SCRN_BTN_B 32
+// #define SCRN_BTN_C 14
 #define I2C_SCL 22
 #define I2C_SDA 23
 
@@ -265,5 +266,42 @@
 #define GEENIE_WIFI_REMOVE '}'
 #define GEENIE_WIFI_STATUS ':'
 #define GEENIE_WIFI_RESET ';'
+
+#if defined(ESP8266)
+  #define BUTTON_A  0
+  #define BUTTON_B 16
+  #define BUTTON_C  2
+  #define WIRE Wire
+#elif defined(ESP32)
+  #define BUTTON_A 15
+  #define BUTTON_B 32
+  #define BUTTON_C 14
+  #define WIRE Wire
+#elif defined(ARDUINO_STM32_FEATHER)
+  #define BUTTON_A PA15
+  #define BUTTON_B PC7
+  #define BUTTON_C PC5
+  #define WIRE Wire
+#elif defined(TEENSYDUINO)
+  #define BUTTON_A  4
+  #define BUTTON_B  3
+  #define BUTTON_C  8
+  #define WIRE Wire
+#elif defined(ARDUINO_FEATHER52832)
+  #define BUTTON_A 31
+  #define BUTTON_B 30
+  #define BUTTON_C 27
+  #define WIRE Wire
+#elif defined(ARDUINO_ADAFRUIT_FEATHER_RP2040)
+  #define BUTTON_A  9
+  #define BUTTON_B  8
+  #define BUTTON_C  7
+  #define WIRE Wire1
+#else // 32u4, M0, M4, nrf52840 and 328p
+  #define BUTTON_A  9
+  #define BUTTON_B  6
+  #define BUTTON_C  5
+  #define WIRE Wire
+#endif
 
 #endif

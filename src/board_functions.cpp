@@ -4,12 +4,18 @@
 #include <ads1299.h>
 #include <FunctionalInterrupt.h>
 #include "BluetoothSerial.h"
+#include <Adafruit_SH110X.h>
+#include <Adafruit_GFX.h>
+
+Adafruit_SH1107 display = Adafruit_SH1107(64, 128, &Wire);
+
 
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
 #endif
 
 BluetoothSerial SerialBT;
+
 // const char *pin = "1234"; // Change this to more secure PIN.
 String device_name = "Geenie";
 
@@ -102,6 +108,27 @@ void GEENIE::initialize(){
 
     //set default state for lead off detection
     // configureLeadOffDetection(LOFF_MAG_6NA,LOFF_FREQ_31p2HZ);
+
+}
+
+void GEENIE::initialize_oled(){
+  if(!display.begin(SCREEN_ADDRESS, true)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+
+  display.clearDisplay();
+  display.display();
+  display.setRotation(1);
+  delay(1000);
+
+  // Clear the buffer.
+  display.setTextSize(1);
+  display.setTextColor(SH110X_WHITE);
+  display.setCursor(0,0);
+  display.println("Geenie v1.0");
+  display.display();
+
 }
 
 void callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param){
@@ -416,6 +443,11 @@ void GEENIE::start()
     delay(10);           // enter Read Data Continuous mode
     ADS1299::START();    //start the data acquisition
     streaming = true;
+
+    // display.clearDisplay();
+    display.setCursor(0, 10);
+    display.println("Measurement Started");
+    display.display();
 }
 
 //Stop the continuous data acquisition
@@ -721,6 +753,24 @@ boolean GEENIE::hasDataSerial(void)
 char GEENIE::getCharSerial(void)
 {
   return Serial.read();
+}
+
+float GEENIE::getBatteryLevel(){
+  float measuredvbat = analogRead(VBATPIN);
+  measuredvbat *= 2;    // we divided by 2, so multiply back
+  // measuredvbat *= 3.3;  // Multiply by 3.3V, our reference voltage
+  measuredvbat /= 1024; // convert to voltage
+
+  return measuredvbat;
+}
+
+void GEENIE::displayBattery(){
+  float bat = getBatteryLevel();
+  display.setCursor(0,40);
+  display.print("Battery: ");
+  display.print(bat, 1);
+  display.println("V");
+  display.display();
 }
 
 // void GEENIE::loop(void)
