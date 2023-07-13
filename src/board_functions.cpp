@@ -114,21 +114,46 @@ void GEENIE::initialize(){
 void GEENIE::initialize_oled(){
   if(!display.begin(SCREEN_ADDRESS, true)) {
     Serial.println(F("SSD1306 allocation failed"));
-    for(;;); // Don't proceed, loop forever
+    oled_available = false;
+  } else {
+    oled_available = true;
+    line1 = (char*)"";
+    line2 = (char*)"";
+    line3 = (char*)"";
+    line4 = (char*)"";
+    line5 = (char*)"";
+    line6 = (char*)"";
+
+    display.clearDisplay();
+    display.display();
+    display.setRotation(1);
+    delay(1000);
+
+    display.setTextSize(1);
+    display.setTextColor(SH110X_WHITE);
+    display.setCursor(0,0);
+    line1 = "Geenie v1.0";
+    line6 = "1|2|3|4|5|6|7|8|";
+    drawLines();
   }
+}
 
-  display.clearDisplay();
-  display.display();
-  display.setRotation(1);
-  delay(1000);
-
-  // Clear the buffer.
-  display.setTextSize(1);
-  display.setTextColor(SH110X_WHITE);
-  display.setCursor(0,0);
-  display.println("Geenie v1.0");
-  display.display();
-
+void GEENIE::drawLines(){
+  if (oled_available){
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.println(line1);
+    display.println(line2);
+    display.println(line3);
+    display.println(line4);
+    display.println(line5);
+    display.println(line6);
+    for (int i=1;i<=8;i++){
+      display.print(line7[i-1]);
+      display.print('|');
+    }
+    display.display();
+  }
 }
 
 void callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param){
@@ -196,6 +221,8 @@ void GEENIE::reset(){
 void GEENIE::deactivateChannel(int N)
 {
   byte reg, config;
+
+  line7[N-1] = 'X';
 	
   //check the inputs
   if ((N < 1) || (N > CHANNELS_PER_BOARD)) return;
@@ -227,6 +254,8 @@ void GEENIE::deactivateChannel(int N)
 void GEENIE::activateChannel(int N,byte gainCode,byte inputCode) 
 {
   // byte reg, config;
+
+  line7[N-1] = 'O';
 	
    //check the inputs
   if ((N < 1) || (N > CHANNELS_PER_BOARD)) return;
@@ -255,6 +284,8 @@ void GEENIE::activateChannel(int N,byte gainCode,byte inputCode)
   
   // activate SRB1 as the Negative input for all channels, if needed
   setSRB1(use_SRB1());
+
+
 };
 
 //note that N here one-referenced (ie [1...N]), not [0...N-1]
@@ -445,9 +476,14 @@ void GEENIE::start()
     streaming = true;
 
     // display.clearDisplay();
-    display.setCursor(0, 10);
-    display.println("Measurement Started");
-    display.display();
+    // display.setCursor(0, 10);
+    // display.println("Measurement Started");
+
+    // display.display();
+
+    line2 = "Measurement Started";
+    drawLines();
+
 }
 
 //Stop the continuous data acquisition
@@ -455,6 +491,9 @@ void GEENIE::stop()
 {
     ADS1299::STOP(); delay(1);   //start the data acquisition
     ADS1299::SDATAC(); delay(1);      // exit Read Data Continuous mode to communicate with ADS
+
+    line2 = "Measurement Stoped";
+    drawLines();
 }
   
 //Query to see if data is available from the ADS1299...return TRUE is data is available
@@ -766,11 +805,10 @@ float GEENIE::getBatteryLevel(){
 
 void GEENIE::displayBattery(){
   float bat = getBatteryLevel();
-  display.setCursor(0,40);
-  display.print("Battery: ");
-  display.print(bat, 1);
-  display.println("V");
-  display.display();
+  line3 = F("Battery: ");
+  line3 += String(bat, 1);
+  line3 += F("V");
+  drawLines();
 }
 
 // void GEENIE::loop(void)

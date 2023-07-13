@@ -26,6 +26,7 @@ class GEENIE: public ADS1299 {
         void initialize();
         void initialize_bluetooth();
         void initialize_oled();
+        void drawLines();
         void initializeBatteryMonitor();
         // void callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
         void set_buttons();
@@ -71,6 +72,7 @@ class GEENIE: public ADS1299 {
 
     private:
         // ADS1299 Ads1299;
+        boolean oled_available;
         boolean verbose;		// turn on/off Serial feedback
         boolean use_neg_inputs;
         boolean use_SRB2[CHANNELS_PER_BOARD];
@@ -78,6 +80,15 @@ class GEENIE: public ADS1299 {
         boolean use_SRB1(void);
         int n_chan_all_boards;
         boolean bt_connected;
+
+        // Variables for oled
+        String line1;
+        String line2;
+        String line3;
+        String line4;
+        String line5;
+        String line6;
+        char line7[8] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
 
         // boolean isMultiCharCmd;  // A multi char command is in progress
 };

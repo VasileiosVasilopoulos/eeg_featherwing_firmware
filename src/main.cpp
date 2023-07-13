@@ -19,14 +19,7 @@ void setup() {
   Serial.println(ads_addr);
   byte ads_addr2 = Geenie.read_ads_2();
   Serial.println(ads_addr2);
-  Geenie.activateChannel(1, ADS_GAIN24, ADSINPUT_NORMAL);
-  Geenie.activateChannel(2, ADS_GAIN24, ADSINPUT_NORMAL);
-  Geenie.activateChannel(3, ADS_GAIN24, ADSINPUT_NORMAL);
-  Geenie.activateChannel(4, ADS_GAIN24, ADSINPUT_NORMAL);
-  Geenie.activateChannel(5, ADS_GAIN24, ADSINPUT_NORMAL);
-  Geenie.activateChannel(6, ADS_GAIN24, ADSINPUT_NORMAL);
-  Geenie.activateChannel(7, ADS_GAIN24, ADSINPUT_NORMAL);
-  Geenie.activateChannel(8, ADS_GAIN24, ADSINPUT_NORMAL);
+
   Serial.println("___________________ADC Initialized__________________________");
   delay(400);
 
@@ -38,13 +31,24 @@ void setup() {
   Geenie.initialize_oled();
   Serial.println("___________________Oled Initialized__________________________");
 
+  delay(400);
+
+  Geenie.activateChannel(1, ADS_GAIN24, ADSINPUT_NORMAL);
+  Geenie.activateChannel(2, ADS_GAIN24, ADSINPUT_NORMAL);
+  Geenie.activateChannel(3, ADS_GAIN24, ADSINPUT_NORMAL);
+  Geenie.activateChannel(4, ADS_GAIN24, ADSINPUT_NORMAL);
+  Geenie.activateChannel(5, ADS_GAIN24, ADSINPUT_NORMAL);
+  Geenie.activateChannel(6, ADS_GAIN24, ADSINPUT_NORMAL);
+  Geenie.activateChannel(7, ADS_GAIN24, ADSINPUT_NORMAL);
+  Geenie.activateChannel(8, ADS_GAIN24, ADSINPUT_NORMAL);
+
   delay(5000);
   // Serial.println("___________________CHIP 1 REGISTERS__________________________");
   // Geenie.RREGS_1(0x00,0x17);     // read all registers starting at ID and ending at CONFIG4
   // Serial.println("___________________CHIP 2 REGISTERS__________________________");
   // Geenie.RREGS_2(0x00,0x17);     // read all registers starting at ID and ending at CONFIG4
   // Serial.println("_____________________________________________________________");
-   
+  Serial.println("Starting Measurement");
   Geenie.start();
 }
 
@@ -68,6 +72,7 @@ void loop() {
 
     if (temp==true) {
       Geenie.sendChannelDataSerialBt(Geenie.PACKET_TYPE_ACCEL);
+      Geenie.sendChannelDataSerial(Geenie.PACKET_TYPE_ACCEL);
       temp = false;
     }
 
