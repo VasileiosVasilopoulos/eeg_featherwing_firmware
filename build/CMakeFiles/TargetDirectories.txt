@@ -1,0 +1,2 @@
+/home/vvasilop/Documents/PlatformIO/Projects/eeg_featherwing_firmware/build/CMakeFiles/edit_cache.dir
+/home/vvasilop/Documents/PlatformIO/Projects/eeg_featherwing_firmware/build/CMakeFiles/rebuild_cache.dir
