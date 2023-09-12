@@ -23,10 +23,9 @@ void setup() {
   Serial.println("___________________ADC Initialized__________________________");
   delay(400);
 
-  Geenie.initialize_bluetooth();
-  Serial.println("___________________Bluetooth Initialized__________________________");
-
-  delay(400);
+  // Geenie.initialize_bluetooth();
+  // Serial.println("___________________Bluetooth Initialized__________________________");
+  // delay(400);
 
   Geenie.initialize_oled();
   Serial.println("___________________Oled Initialized__________________________");
@@ -71,7 +70,7 @@ void loop() {
     }
 
     if (temp==true) {
-      Geenie.sendChannelDataSerialBt(Geenie.PACKET_TYPE_ACCEL);
+      // Geenie.sendChannelDataSerialBt(Geenie.PACKET_TYPE_ACCEL);
       Geenie.sendChannelDataSerial(Geenie.PACKET_TYPE_ACCEL);
       temp = false;
     }
