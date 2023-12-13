@@ -99,8 +99,10 @@ void GEENIE::initialize(){
 
     
     //Finalize the bias setup...activate buffer and use internal reference for center of bias creation, datasheet PDF p42
-    ADS1299::WREG_1(CONFIG3,0b11111100); delay(1);
-    ADS1299::WREG_2(CONFIG3,0b11101000); delay(1);
+    // ADS1299::WREG_1(CONFIG3,0b11101111); delay(1);
+    // ADS1299::WREG_1(CONFIG3,0b01100000); delay(1);
+    ADS1299::WREG_1(CONFIG3,0b11101100); delay(1);
+    ADS1299::WREG_2(CONFIG3,0b01100000); delay(1);
     //set default state for internal test signal
     //ADS1299::WREG(CONFIG2,0b11010000);delay(1);   //set internal test signal, default amplitude, default speed, datasheet PDF Page 41
     //ADS1299::WREG(CONFIG2,0b11010001);delay(1);   //set internal test signal, default amplitude, 2x speed, datasheet PDF Page 41
@@ -667,7 +669,8 @@ void GEENIE::ADS_writeChannelDataAvgDaisy()
   {
     for (int i = 0; i < 24; i++)
     {
-      writeSerial(meanBoardDataRaw[i]);
+      // writeSerial(meanBoardDataRaw[i]);
+      writeSerial(boardChannelDataRaw[i]);
     }
   }
 }

@@ -4,7 +4,8 @@
 #include "BluetoothSerial.h"
 
 GEENIE Geenie;
-boolean temp = false;
+boolean temp1 = false;
+boolean temp2 = false;
 
 
 void setup() {
@@ -27,8 +28,8 @@ void setup() {
   // Serial.println("___________________Bluetooth Initialized__________________________");
   // delay(400);
 
-  Geenie.initialize_oled();
-  Serial.println("___________________Oled Initialized__________________________");
+  // Geenie.initialize_oled();
+  // Serial.println("___________________Oled Initialized__________________________");
 
   delay(400);
 
@@ -61,18 +62,19 @@ void loop() {
     if (Geenie.channelDataAvailable_2) {
       // Read from the ADS(s), store data, set channelDataAvailable flag to false
       Geenie.updateChannelData_2();
-      temp=true;
+      temp2=true;
     }
     if (Geenie.channelDataAvailable_1) {
       // Read from the ADS(s), store data, set channelDataAvailable flag to false
       Geenie.updateChannelData_1();
-      temp=true;
+      temp1=true;
     }
 
-    if (temp==true) {
+    if((temp1==true)&&(temp2==true)) {
       // Geenie.sendChannelDataSerialBt(Geenie.PACKET_TYPE_ACCEL);
       Geenie.sendChannelDataSerial(Geenie.PACKET_TYPE_ACCEL);
-      temp = false;
+      temp1 = false;
+      temp2 = false;
     }
 
     Geenie.displayBattery();
