@@ -10,7 +10,6 @@
             "includePath": [
                 "c:/Users/Vasilis/Documents/Thesis/eeg_featherwing_firmware/include",
                 "c:/Users/Vasilis/Documents/Thesis/eeg_featherwing_firmware/src",
-                "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
                 "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/BluetoothSerial/src",
                 "c:/Users/Vasilis/Documents/Thesis/eeg_featherwing_firmware/.pio/libdeps/featheresp32/Adafruit GFX Library",
                 "c:/Users/Vasilis/Documents/Thesis/eeg_featherwing_firmware/.pio/libdeps/featheresp32/Adafruit BusIO",
@@ -89,6 +88,7 @@
                 "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/ESP32/src",
                 "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/ESPmDNS/src",
                 "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/FFat/src",
+                "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
                 "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src",
                 "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdate/src",
                 "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdateServer/src",
@@ -111,7 +111,6 @@
                 "path": [
                     "c:/Users/Vasilis/Documents/Thesis/eeg_featherwing_firmware/include",
                     "c:/Users/Vasilis/Documents/Thesis/eeg_featherwing_firmware/src",
-                    "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
                     "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/BluetoothSerial/src",
                     "c:/Users/Vasilis/Documents/Thesis/eeg_featherwing_firmware/.pio/libdeps/featheresp32/Adafruit GFX Library",
                     "c:/Users/Vasilis/Documents/Thesis/eeg_featherwing_firmware/.pio/libdeps/featheresp32/Adafruit BusIO",
@@ -190,6 +189,7 @@
                     "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/ESP32/src",
                     "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/ESPmDNS/src",
                     "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/FFat/src",
+                    "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
                     "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src",
                     "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdate/src",
                     "C:/Users/Vasilis/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdateServer/src",
@@ -209,7 +209,7 @@
                 ]
             },
             "defines": [
-                "PLATFORMIO=60109",
+                "PLATFORMIO=60111",
                 "ARDUINO_FEATHER_ESP32",
                 "ESP32",
                 "ESP_PLATFORM",

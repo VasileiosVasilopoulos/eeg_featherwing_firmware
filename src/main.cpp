@@ -5,6 +5,7 @@
 
 GEENIE Geenie;
 boolean temp = false;
+boolean ble_active = false;
 
 
 void setup() {
@@ -25,8 +26,9 @@ void setup() {
   Serial.println("___________________ADC Initialized__________________________");
   delay(400);
 
-  Geenie.initialize_bluetooth();
-  Serial.println("___________________Bluetooth Initialized__________________________");
+  // Geenie.initialize_bluetooth();
+  // ble_active = true;
+  // Serial.println("___________________Bluetooth Initialized__________________________");
 
   delay(400);
 
@@ -73,7 +75,9 @@ void loop() {
     }
 
     if (temp==true) {
-      Geenie.sendChannelDataSerialBt(Geenie.PACKET_TYPE_ACCEL);
+      if (ble_active == true) {
+        Geenie.sendChannelDataSerialBt(Geenie.PACKET_TYPE_ACCEL);
+      } 
       Geenie.sendChannelDataSerial(Geenie.PACKET_TYPE_ACCEL);
       temp = false;
     }
