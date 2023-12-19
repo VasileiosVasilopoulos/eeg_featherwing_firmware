@@ -3,6 +3,7 @@
 #include <board_functions.h>
 #include "BluetoothSerial.h"
 
+// Initialize Geenie object
 GEENIE Geenie;
 boolean temp1 = false;
 boolean temp2 = false;
@@ -16,6 +17,7 @@ void setup() {
   Serial.println("Ready");
   Geenie.set_buttons();
   Geenie.initialize();
+  //Read ads registers to verify that they work
   byte ads_addr = Geenie.read_ads_1();
   Serial.println(ads_addr);
   byte ads_addr2 = Geenie.read_ads_2();
@@ -24,15 +26,19 @@ void setup() {
   Serial.println("___________________ADC Initialized__________________________");
   delay(400);
 
+  // Bluetooth Initializer
+
   // Geenie.initialize_bluetooth();
   // Serial.println("___________________Bluetooth Initialized__________________________");
   // delay(400);
 
+  // OLED Initializer
+
   // Geenie.initialize_oled();
-  // Serial.println("___________________Oled Initialized__________________________");
+  // Serial.println("___________________Oled Initialized__________________________"); 
+  // delay(400);
 
-  delay(400);
-
+  // Activate all channels
   Geenie.activateChannel(1, ADS_GAIN24, ADSINPUT_NORMAL);
   Geenie.activateChannel(2, ADS_GAIN24, ADSINPUT_NORMAL);
   Geenie.activateChannel(3, ADS_GAIN24, ADSINPUT_NORMAL);
@@ -54,11 +60,6 @@ void setup() {
 
 void loop() {
   if (Geenie.streaming) {
-    // if (Geenie.channelDataAvailable_1 && Geenie.channelDataAvailable_2) {
-    //   // Read from the ADS(s), store data, set channelDataAvailable flag to false
-    //   Geenie.updateChannelData();
-    //   Geenie.sendChannelDataSerial(Geenie.PACKET_TYPE_ACCEL);
-    // }
     if (Geenie.channelDataAvailable_2) {
       // Read from the ADS(s), store data, set channelDataAvailable flag to false
       Geenie.updateChannelData_2();
@@ -70,6 +71,7 @@ void loop() {
       temp1=true;
     }
 
+    // When both chips have available data, send them
     if((temp1==true)&&(temp2==true)) {
       // Geenie.sendChannelDataSerialBt(Geenie.PACKET_TYPE_ACCEL);
       Geenie.sendChannelDataSerial(Geenie.PACKET_TYPE_ACCEL);
@@ -77,7 +79,9 @@ void loop() {
       temp2 = false;
     }
 
+    // Displays battery voltage if a screen is connected
     Geenie.displayBattery();
   }
+  // Check the serial and bluetooth interface for available commands
   Geenie.checkForCommands();
 }

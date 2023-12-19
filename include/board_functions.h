@@ -67,11 +67,8 @@ class GEENIE: public ADS1299 {
         char getCharSerial(void);
         float getBatteryLevel(void);
         void displayBattery(void);
-        // void loop(void);
-        // boolean processChar(char);
 
     private:
-        // ADS1299 Ads1299;
         boolean oled_available;
         boolean verbose;		// turn on/off Serial feedback
         boolean use_neg_inputs;
@@ -89,8 +86,6 @@ class GEENIE: public ADS1299 {
         String line5;
         String line6;
         char line7[8] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
-
-        // boolean isMultiCharCmd;  // A multi char command is in progress
 };
 
 #endif
