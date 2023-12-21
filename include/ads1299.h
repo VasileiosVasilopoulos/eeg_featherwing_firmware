@@ -69,7 +69,8 @@ public:
     byte sampleCounter;
     byte sampleCounterBLE;
 
-    boolean firstDataPacket;
+    boolean firstDataPacket1;
+    boolean firstDataPacket2;
     // long channelData [16];	// array used when reading channel data board 1+2
     boolean verbose;		// turn on/off Serial feedback
     

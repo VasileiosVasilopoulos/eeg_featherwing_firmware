@@ -8,7 +8,8 @@
 
 void ADS1299::initialize(int _CS_1 ,int _DRDY_1, int _CS_2, int _DRDY_2, boolean _verbose){ 
 	verbose = _verbose;
-    firstDataPacket = true;
+    firstDataPacket1 = true;
+    firstDataPacket2 = true;
     n_chan_all_boards = CHANNELS_PER_BOARD;
 
     // WREG(CONFIG1,0b11101100); delay(1);
@@ -481,7 +482,7 @@ void ADS1299::updateChannelData_1(){
 	byte inByte;
     int bytecounter = 0;
 
-    if (!firstDataPacket) {
+    if (!firstDataPacket1) {
         for (int i = 0; i < CHANNELS_PER_ADC; i++){                  // shift and average the byte arrays
             lastBoardChannelDataInt[i] = boardChannelDataInt[i]; // remember the last samples
         }
@@ -518,12 +519,12 @@ void ADS1299::updateChannelData_1(){
         }
     }
 
-    if (!firstDataPacket) {
+    if (!firstDataPacket1) {
         bytecounter = 0;
         for (int i = 0; i < CHANNELS_PER_ADC; i++) { // take the average of this and the last sample
             meanBoardChannelDataInt[i] = (lastBoardChannelDataInt[i] + boardChannelDataInt[i]) / 2;
         }
-        for (int i = 0; i < CHANNELS_PER_BOARD; i++)
+        for (int i = 0; i < CHANNELS_PER_ADC; i++)
         { // place the average values in the meanRaw array
             for (int b = 2; b >= 0; b--) {
                 meanBoardDataRaw[bytecounter] = (meanBoardChannelDataInt[i] >> (b * 8)) & 0xFF;
@@ -532,8 +533,8 @@ void ADS1299::updateChannelData_1(){
         }
     }
 
-    if (firstDataPacket == true) {
-        firstDataPacket = false;
+    if (firstDataPacket1 == true) {
+        firstDataPacket1 = false;
     }
 }
 
@@ -542,12 +543,11 @@ void ADS1299::updateChannelData_2(){
     lastSampleTime = millis();
     // Serial.println(millis());
 
-    if (!firstDataPacket) {
-	for(int i = 4; i<4+CHANNELS_PER_ADC; i++){                 // shift and average the byte arrays
+    if (!firstDataPacket2) {
+	for(int i = 4; i<CHANNELS_PER_BOARD; i++){                 // shift and average the byte arrays
             lastBoardChannelDataInt[i] = boardChannelDataInt[i]; // remember the last samples
         }
     }
-
 
 	byte inByte;
     int bytecounter = 12;
@@ -558,7 +558,7 @@ void ADS1299::updateChannelData_2(){
 		stat1_2 = (stat1_2<<8) | inByte;				
 	}
 	
-	for(int i = 4; i<4+CHANNELS_PER_ADC; i++){
+	for(int i = 4; i<CHANNELS_PER_BOARD; i++){
 		for(int j=0; j<3; j++){		//  read 24 bits of channel data from 1st ADS in 8 3 byte chunks
 			inByte = vspi_1->transfer(0x00);
 			boardChannelDataRaw[bytecounter] = inByte;
@@ -580,12 +580,12 @@ void ADS1299::updateChannelData_2(){
         }
     }
 
-    if (!firstDataPacket) {
-        bytecounter = 0;
-	for(int i = 4; i<4+CHANNELS_PER_ADC; i++){
+    if (!firstDataPacket2) {
+        bytecounter = 12;
+	    for(int i = 4; i<CHANNELS_PER_BOARD; i++){
             meanBoardChannelDataInt[i] = (lastBoardChannelDataInt[i] + boardChannelDataInt[i]) / 2;
         }
-        for (int i = 0; i < CHANNELS_PER_BOARD; i++)
+        for (int i = 4; i < CHANNELS_PER_BOARD; i++)
         { // place the average values in the meanRaw array
             for (int b = 2; b >= 0; b--) {
                 meanBoardDataRaw[bytecounter] = (meanBoardChannelDataInt[i] >> (b * 8)) & 0xFF;
@@ -594,8 +594,8 @@ void ADS1299::updateChannelData_2(){
         }
     }
 
-    if (firstDataPacket == true) {
-        firstDataPacket = false;
+    if (firstDataPacket2 == true) {
+        firstDataPacket2 = false;
     }
 }
 
