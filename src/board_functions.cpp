@@ -107,7 +107,8 @@ void GEENIE::initialize(){
 
     // BIAS SETTINGS
     ADS1299::WREG_1(CONFIG3,0b11101100); delay(1);
-    ADS1299::WREG_2(CONFIG3,0b01100000); delay(1);
+    // ADS1299::WREG_1(CONFIG3,0b01100000); delay(1);
+    ADS1299::WREG_2(CONFIG3,0b11100000); delay(1);
 
     //set default state for internal test signal
     //ADS1299::WREG(CONFIG2,0b11010000);delay(1);   //set internal test signal, default amplitude, default speed, datasheet PDF Page 41

@@ -48,7 +48,7 @@ void setup() {
   Geenie.activateChannel(7, ADS_GAIN24, ADSINPUT_NORMAL);
   Geenie.activateChannel(8, ADS_GAIN24, ADSINPUT_NORMAL);
 
-  delay(5000);
+  delay(2000);
   // Serial.println("___________________CHIP 1 REGISTERS__________________________");
   // Geenie.RREGS_1(0x00,0x17);     // read all registers starting at ID and ending at CONFIG4
   // Serial.println("___________________CHIP 2 REGISTERS__________________________");
