@@ -42,8 +42,8 @@ void setup() {
   Geenie.activateChannel(1, ADS_GAIN24, ADSINPUT_NORMAL);
   Geenie.activateChannel(2, ADS_GAIN24, ADSINPUT_NORMAL);
   Geenie.activateChannel(3, ADS_GAIN24, ADSINPUT_NORMAL);
-  Geenie.activateChannel(4, ADS_GAIN24, ADSINPUT_NORMAL);
-  Geenie.activateChannel(5, ADS_GAIN24, ADSINPUT_NORMAL);
+  // Geenie.activateChannel(4, ADS_GAIN24, ADSINPUT_NORMAL);
+  // Geenie.activateChannel(5, ADS_GAIN24, ADSINPUT_NORMAL);
   Geenie.activateChannel(6, ADS_GAIN24, ADSINPUT_NORMAL);
   Geenie.activateChannel(7, ADS_GAIN24, ADSINPUT_NORMAL);
   Geenie.activateChannel(8, ADS_GAIN24, ADSINPUT_NORMAL);
