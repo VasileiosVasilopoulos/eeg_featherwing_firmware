@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <ads1299.h>
 #include <FunctionalInterrupt.h>
-#include "BluetoothSerial.h"
+// #include "BluetoothSerial.h"
 #include <Adafruit_SH110X.h>
 #include <Adafruit_GFX.h>
 
@@ -16,10 +16,10 @@
 #endif
 
 Adafruit_SH1107 display = Adafruit_SH1107(64, 128, &Wire);
-BluetoothSerial SerialBT;
+// BluetoothSerial SerialBT;
 
 // const char *pin = "1234"; // Change this to more secure PIN.
-String device_name = "Geenie";
+// String device_name = "Geenie";
 
 // BUTTON INTERRUPTS, Change these functions to assign jobs to the buttons
 
@@ -84,7 +84,7 @@ void GEENIE::set_buttons(){
 // Initializer for the GEENIE object
 void GEENIE::initialize(){
     // Serial.begin(SERIAL_BAUDRATE);
-    bt_connected = false;
+    // bt_connected = false;
     
     ADS1299::initialize(CS_ADS_1, DRDY_ADS_1, CS_ADS_2, DRDY_ADS_2, true);
     delay(100);
@@ -167,25 +167,25 @@ void GEENIE::drawLines(){
 }
 
 // Bluetooth callback for client connections
-void callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param){
-  if(event == ESP_SPP_SRV_OPEN_EVT){
-    Serial.println("Client Connected");
-  }
-}
+// void callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param){
+//   if(event == ESP_SPP_SRV_OPEN_EVT){
+//     Serial.println("Client Connected");
+//   }
+// }
 
 // Initializer for bluetooth
-void GEENIE::initialize_bluetooth(){
-    SerialBT.register_callback(callback);
+// void GEENIE::initialize_bluetooth(){
+//     SerialBT.register_callback(callback);
 
-    bt_connected = true;
-    if(!SerialBT.begin(device_name)){
-      Serial.println("An error occurred initializing Bluetooth");
-    }else{
-      Serial.println("Bluetooth initialized");
-    }
-    // SerialBT.setPin(pin);
-    Serial.println("Bluetooth Started! Ready to pair...");
-}
+//     bt_connected = true;
+//     if(!SerialBT.begin(device_name)){
+//       Serial.println("An error occurred initializing Bluetooth");
+//     }else{
+//       Serial.println("Bluetooth initialized");
+//     }
+//     // SerialBT.setPin(pin);
+//     Serial.println("Bluetooth Started! Ready to pair...");
+// }
 
 
 // Reset function - called on device power up
@@ -628,22 +628,22 @@ void GEENIE::sendChannelDataSerial(PACKET_TYPE packetType)
 }
 
 // Sends data to bluetooth interface
-void GEENIE::sendChannelDataSerialBt(PACKET_TYPE packetType)
-{
-  if (bt_connected){
-    SerialBT.write(BOP);   // 1 byte - 0x41
-    SerialBT.write(sampleCounter); // 1 byte
-    ADS_writeChannelDataBt();     // 24 bytes
-    // Write  Timestamp
-      // serialize the number, placing the MSB in lower packets
-    for (int j = 3; j >= 0; j--)
-    {
-      SerialBT.write((uint8_t)(lastSampleTime >> (j * 8)));
-    }
-    SerialBT.write((uint8_t)(PCKT_END | packetType)); // 1 byte
-    sampleCounter += 1;
-  }
-}
+// void GEENIE::sendChannelDataSerialBt(PACKET_TYPE packetType)
+// {
+//   if (bt_connected){
+//     SerialBT.write(BOP);   // 1 byte - 0x41
+//     SerialBT.write(sampleCounter); // 1 byte
+//     ADS_writeChannelDataBt();     // 24 bytes
+//     // Write  Timestamp
+//       // serialize the number, placing the MSB in lower packets
+//     for (int j = 3; j >= 0; j--)
+//     {
+//       SerialBT.write((uint8_t)(lastSampleTime >> (j * 8)));
+//     }
+//     SerialBT.write((uint8_t)(PCKT_END | packetType)); // 1 byte
+//     sampleCounter += 1;
+//   }
+// }
 
 // Write a byte to the serial interface
 void GEENIE::writeSerial(uint8_t c)
@@ -661,13 +661,13 @@ void GEENIE::ADS_writeChannelData()
 }
 
 // Write channel data to the bluetooth interface
-void GEENIE::ADS_writeChannelDataBt()
-{
-  for (int i = 0; i < 24; i++)
-  {
-    SerialBT.write(meanBoardDataRaw[i]);
-  }
-}
+// void GEENIE::ADS_writeChannelDataBt()
+// {
+//   for (int i = 0; i < 24; i++)
+//   {
+//     SerialBT.write(meanBoardDataRaw[i]);
+//   }
+// }
 
 // Write average channel data to the serial interface
 void GEENIE::ADS_writeChannelDataAvgDaisy()
@@ -694,8 +694,8 @@ void GEENIE::writeAuxDataSerial(void)
 
 // check for commands in the serial and bluetooth interfaces
 void GEENIE::checkForCommands(void){
-  if (SerialBT.available()) { 
-    int ret = SerialBT.read();
+  if (Serial.available()) { 
+    int ret = Serial.read();
     switch (ret)
       {
       case GEENIE_START:
